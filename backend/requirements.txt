@@ -1,0 +1,15 @@
+fastapi>=0.115.0
+uvicorn>=0.34.0
+aiogram>=3.22.0
+sqlalchemy>=2.0.0
+aiosqlite>=0.21.0
+asyncpg>=0.30.0
+pydantic>=2.11.0
+pydantic-settings>=2.11.0
+python-multipart>=0.0.20
+python-dotenv>=1.1.1
+imageio-ffmpeg>=0.6.0
+mutagen>=1.48.0
+aiofiles>=24.1.0
+httpx>=0.28.1
+requests>=2.32.0

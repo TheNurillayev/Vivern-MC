@@ -1,0 +1,27 @@
+# Environment and secrets
+.env
+.env.local
+*.secret
+*.pem
+*.key
+
+# Database and Storage
+storage/*.db
+storage/uploads/*
+storage/outputs/*
+!storage/library/.gitkeep
+!storage/uploads/.gitkeep
+!storage/outputs/.gitkeep
+
+# Python cache and venv
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# Binaries & Executables
+*.exe
+cloudflared.exe

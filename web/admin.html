@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vivern MC - Admin Panel</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    .category-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .track-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .track-active {
+      border-color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .track-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .badge-active {
+      background: var(--accent-emerald);
+      color: #064e3b;
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.7rem;
+    }
+    .badge-inactive {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+    }
+    audio {
+      width: 100%;
+      height: 32px;
+      border-radius: 6px;
+    }
+    .action-btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+    }
+    .btn-activate {
+      background: var(--accent-blue);
+      color: white;
+    }
+    .btn-delete {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger-color);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚙️</div>
+      <div>
+        <div class="brand-title">ADMIN PANEL</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);">Musiqa Kutubxonasi Boshqaruvi</div>
+      </div>
+    </div>
+    <a href="/index.html" class="badge-tag" style="text-decoration:none; background: rgba(255,255,255,0.1); color: var(--text-main);">
+      ← Mini App
+    </a>
+  </header>
+
+  <main>
+    <!-- Access Denied Card (default visible until verified) -->
+    <div id="unauthorized-card" class="card hidden" style="border-color: var(--danger-color); text-align: center;">
+      <div style="font-size: 2.5rem; margin-bottom: 10px;">⛔</div>
+      <h2 style="color: var(--danger-color); margin-bottom: 8px;">Ruxsat Berilmadi</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Sizning Telegram hisobingiz ushbu bo'limga kirish huquqiga ega emas. Faqat belgilangan administratorlar kirishi mumkin.
+      </p>
+    </div>
+
+    <!-- Admin Content Area -->
+    <div id="admin-content" class="hidden">
+      <div id="admin-toast" class="card hidden" style="margin-bottom: 14px; font-weight: 500; font-size: 0.9rem;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 1.1rem; font-weight: 600;">4 Ta Musiqa Toifasi</h3>
+        <button onclick="loadCategories()" class="btn-sm btn-secondary" style="width: auto;">🔄 Yangilash</button>
+      </div>
+
+      <div id="categories-container">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Upload Modal / Input Hidden -->
+  <input type="file" id="admin-file-input" accept="audio/*,.mp3,.wav,.m4a,.ogg" style="display: none;" onchange="handleFileSelected(event)">
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    let selectedCategoryId = null;
+    let token = sessionStorage.getItem("vivern_token");
+
+    async function initAdmin() {
+      if (tg) {
+        tg.ready();
+        tg.expand();
+      }
+
+      // Check authorization with backend
+      const rawInitData = tg?.initData || "test_user_8449563084";
+      try {
+        const authRes = await fetch("/api/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ init_data: rawInitData })
+        });
+        if (!authRes.ok) throw new Error("Auth failed");
+        const authData = await authRes.json();
+        token = authData.token;
+        sessionStorage.setItem("vivern_token", token);
+
+        if (!authData.user.is_admin) {
+          document.getElementById("unauthorized-card").classList.remove("hidden");
+          return;
+        }
+
+        document.getElementById("admin-content").classList.remove("hidden");
+        loadCategories();
+      } catch (e) {
+        document.getElementById("unauthorized-card").classList.remove("hidden");
+      }
+    }
+
+    async function loadCategories() {
+      const container = document.getElementById("categories-container");
+      container.innerHTML = '<div style="text-align:center; padding: 20px;" class="spinner"></div>';
+
+      try {
+        const res = await fetch("/api/admin/categories", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Yuklab bo'lmadi");
+        const categories = await res.json();
+
+        container.innerHTML = "";
+        for (const cat of categories) {
+          const card = document.createElement("div");
+          card.className = "category-card";
+
+          const activeTrack = cat.active_track;
+          let trackHtml = '<div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">Faol trek mavjud emas.</div>';
+
+          if (activeTrack) {
+            trackHtml = `
+              <div class="track-item track-active">
+                <div class="track-meta">
+                  <span style="font-weight: 600;">${activeTrack.title}</span>
+                  <span class="badge-active">FAOL (v${activeTrack.version})</span>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                  Format: ${activeTrack.format.toUpperCase()} | Davomiyligi: ${activeTrack.duration_seconds}s
+                </div>
+                <audio controls src="/api/admin/assets/${activeTrack.id}/preview" preload="none"></audio>
+              </div>
+            `;
+          }
+
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 0.95rem;">${cat.name}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">ID: ${cat.id}</div>
+              </div>
+              <button onclick="triggerUpload('${cat.id}')" class="btn-sm btn-primary" style="width: auto;">
+                ➕ Yangi Trek
+              </button>
+            </div>
+            ${trackHtml}
+            <div style="margin-top: 10px;">
+              <button onclick="toggleTrackList('${cat.id}')" class="btn-sm btn-secondary" style="width: 100%;">
+                Barcha versiyalarni ko'rish
+              </button>
+              <div id="list-${cat.id}" class="hidden" style="margin-top: 8px;"></div>
+            </div>
+          `;
+          container.appendChild(card);
+        }
+      } catch (err) {
+        container.innerHTML = `<div style="color:var(--danger-color); padding:10px;">Xatolik: ${err.message}</div>`;
+      }
+    }
+
+    async function toggleTrackList(categoryId) {
+      const listEl = document.getElementById(`list-${categoryId}`);
+      if (!listEl.classList.contains("hidden")) {
+        listEl.classList.add("hidden");
+        return;
+      }
+      listEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted);">Yuklanmoqda...</div>';
+      listEl.classList.remove("hidden");
+
+      try {
+        const res = await fetch(`/api/admin/assets?category=${categoryId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const tracks = await res.json();
+        if (tracks.length === 0) {
+          listEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted);">Hech qanday trek yo\'q.</div>';
+          return;
+        }
+
+        listEl.innerHTML = tracks.map(t => `
+          <div class="track-item ${t.is_active ? 'track-active' : ''}">
+            <div class="track-meta">
+              <span>${t.title}</span>
+              ${t.is_active ? '<span class="badge-active">FAOL</span>' : '<span class="badge-inactive">No-faol</span>'}
+            </div>
+            <audio controls src="/api/admin/assets/${t.id}/preview" preload="none"></audio>
+            <div class="action-btn-row">
+              ${!t.is_active ? `<button onclick="activateTrack('${t.id}')" class="btn-sm btn-activate">Faollashtirish</button>` : ''}
+              <button onclick="deleteTrack('${t.id}')" class="btn-sm btn-delete">O'chirish</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (e) {
+        listEl.innerHTML = '<div style="color:var(--danger-color); font-size:0.8rem;">Yuklab bo\'lmadi.</div>';
+      }
+    }
+
+    function showAdminNotification(msg, type = "info") {
+      const toast = document.getElementById("admin-toast");
+      if (!toast) return;
+      toast.className = "card";
+      if (type === "success") {
+        toast.style.background = "rgba(16, 185, 129, 0.15)";
+        toast.style.borderColor = "var(--accent-emerald)";
+        toast.style.color = "#6ee7b7";
+      } else if (type === "error") {
+        toast.style.background = "rgba(239, 68, 68, 0.15)";
+        toast.style.borderColor = "var(--danger-color)";
+        toast.style.color = "#fca5a5";
+      } else {
+        toast.style.background = "rgba(59, 130, 246, 0.15)";
+        toast.style.borderColor = "var(--accent-blue)";
+        toast.style.color = "#93c5fd";
+      }
+      toast.innerHTML = msg;
+      toast.classList.remove("hidden");
+      if (type !== "loading") {
+        setTimeout(() => toast.classList.add("hidden"), 4000);
+      }
+    }
+
+    function triggerUpload(categoryId) {
+      selectedCategoryId = categoryId;
+      document.getElementById("admin-file-input").click();
+    }
+
+    async function handleFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file || !selectedCategoryId) return;
+
+      const title = file.name.replace(/\.[^/.]+$/, "");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("category", selectedCategoryId);
+      formData.append("title", title);
+      formData.append("set_active", "true");
+
+      showAdminNotification("⏳ Fayl yuklanmoqda va tekshirilmoqda...", "loading");
+      try {
+        const res = await fetch("/api/admin/assets/upload", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Yuklashda xatolik");
+        showAdminNotification("✅ Trek muvaffaqiyatli saqlandi va faollashtirildi!", "success");
+        loadCategories();
+      } catch (err) {
+        showAdminNotification("❌ Xatolik: " + err.message, "error");
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    async function activateTrack(assetId) {
+      try {
+        const res = await fetch(`/api/admin/assets/${assetId}/activate`, {
+          method: "PATCH",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Faollashtirib bo'lmadi");
+        loadCategories();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function deleteTrack(assetId) {
+      if (!confirm("Haqiqatan ham bu trekni o'chirmoqchimisiz?")) return;
+      try {
+        const res = await fetch(`/api/admin/assets/${assetId}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("O'chirib bo'lmadi");
+        loadCategories();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", initAdmin);
+  </script>
+</body>
+</html>

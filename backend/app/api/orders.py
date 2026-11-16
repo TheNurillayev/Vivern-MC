@@ -1,0 +1,159 @@
+import os
+import shutil
+import tempfile
+import uuid
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from backend.app.core.database import get_db
+from backend.app.core.config import settings
+from backend.app.api.auth import get_current_user
+from backend.app.models.user import User
+from backend.app.models.order import Order
+from backend.app.schemas.order import OrderCreateResponse, OrderDetailResponse
+from backend.app.services.audio.validator import validate_audio_file, AudioValidationError
+from backend.app.services.storage.local_storage import storage_service
+
+router = APIRouter(prefix="/api/orders", tags=["orders"])
+
+@router.post("/create", response_model=OrderCreateResponse)
+async def create_order(
+    original_recording: UploadFile = File(...),
+    special_music: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if not original_recording or not special_music:
+        raise HTTPException(
+            status_code=400,
+            detail="Ikkala fayl ham talab qilinadi: Telefon suhbati va Maxsus musiqa."
+        )
+
+    # Temporary validation for original recording
+    orig_ext = os.path.splitext(original_recording.filename or "")[1] or ".mp3"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=orig_ext) as tmp_orig:
+        tmp_orig_path = tmp_orig.name
+        shutil.copyfileobj(original_recording.file, tmp_orig)
+
+    try:
+        orig_meta = validate_audio_file(tmp_orig_path)
+    except AudioValidationError as e:
+        if os.path.exists(tmp_orig_path):
+            os.remove(tmp_orig_path)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Telefon suhbati audiosi yaroqsiz: {str(e)}"
+        )
+
+    # Temporary validation for special music
+    spec_ext = os.path.splitext(special_music.filename or "")[1] or ".mp3"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=spec_ext) as tmp_spec:
+        tmp_spec_path = tmp_spec.name
+        shutil.copyfileobj(special_music.file, tmp_spec)
+
+    try:
+        spec_meta = validate_audio_file(tmp_spec_path)
+    except AudioValidationError as e:
+        if os.path.exists(tmp_orig_path):
+            os.remove(tmp_orig_path)
+        if os.path.exists(tmp_spec_path):
+            os.remove(tmp_spec_path)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maxsus musiqa audiosi yaroqsiz: {str(e)}"
+        )
+
+    # Check free trial eligibility
+    is_free = user.trial_count < settings.FREE_TRIAL_GENERATIONS
+    price = 0 if is_free else settings.PRICE_PER_ORDER_SOM
+    initial_status = "queued" if is_free else "payment_required"
+
+    order_id = str(uuid.uuid4())
+
+    # Save to persistent storage
+    saved_orig_path = storage_service.save_customer_upload(
+        source_path=tmp_orig_path,
+        order_id=order_id,
+        upload_type="recording",
+        original_filename=original_recording.filename or "recording.mp3"
+    )
+    saved_spec_path = storage_service.save_customer_upload(
+        source_path=tmp_spec_path,
+        order_id=order_id,
+        upload_type="special_music",
+        original_filename=special_music.filename or "special.mp3"
+    )
+
+    # Cleanup temp
+    if os.path.exists(tmp_orig_path):
+        os.remove(tmp_orig_path)
+    if os.path.exists(tmp_spec_path):
+        os.remove(tmp_spec_path)
+
+    # Create Order record in DB
+    order = Order(
+        id=order_id,
+        user_id=user.id,
+        status=initial_status,
+        original_recording_path=saved_orig_path,
+        original_recording_name=original_recording.filename or "recording.mp3",
+        special_music_path=saved_spec_path,
+        special_music_name=special_music.filename or "special.mp3",
+        price_som=price,
+        is_free_trial=is_free,
+        is_paid=is_free  # Trial orders are automatically considered paid
+    )
+
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+
+    return OrderCreateResponse.model_validate(order)
+
+@router.get("/my", response_model=List[OrderDetailResponse])
+async def get_my_orders(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """AT-11: Customer sees only their own orders."""
+    res = await db.execute(
+        select(Order).where(Order.user_id == user.id).order_by(Order.created_at.desc())
+    )
+    orders = res.scalars().all()
+    return [OrderDetailResponse.model_validate(o) for o in orders]
+
+@router.get("/{order_id}", response_model=OrderDetailResponse)
+async def get_order_detail(
+    order_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(Order).where(Order.id == order_id))
+    order = res.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Security check: only order owner or admin can inspect
+    if order.user_id != user.id and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this order")
+
+    return OrderDetailResponse.model_validate(order)
+
+@router.get("/{order_id}/download")
+async def download_output_audio(
+    order_id: str,
+    token: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(Order).where(Order.id == order_id))
+    order = res.scalar_one_or_none()
+    if not order or not order.output_audio_path or not os.path.exists(order.output_audio_path):
+        raise HTTPException(status_code=404, detail="Audio fayl hali tayyor emas yoki topilmadi")
+
+    return FileResponse(
+        order.output_audio_path,
+        media_type="audio/mpeg",
+        filename=f"Vivern_MC_{order_id[:8]}.mp3"
+    )

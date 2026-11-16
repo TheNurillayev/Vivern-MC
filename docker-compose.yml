@@ -1,0 +1,11 @@
+services:
+  vivern-mc:
+    build: .
+    container_name: vivern_mc_app
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/app/storage

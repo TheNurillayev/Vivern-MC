@@ -1,0 +1,143 @@
+import json
+import base64
+import hmac
+import hashlib
+from fastapi import APIRouter, Depends, HTTPException, Header, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from typing import Optional
+from backend.app.core.database import get_db
+from backend.app.core.config import settings
+from backend.app.core.security import verify_telegram_init_data, is_admin_user
+from backend.app.schemas.auth import TelegramInitDataRequest, AuthResponse, UserInfo
+from backend.app.models.user import User
+
+router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+def create_session_token(user_id: int, is_admin: bool) -> str:
+    payload = json.dumps({"uid": user_id, "admin": is_admin}).encode("utf-8")
+    signature = hmac.new(settings.JWT_SECRET.encode(), payload, hashlib.sha256).hexdigest()
+    token = f"{base64.urlsafe_b64encode(payload).decode('utf-8')}.{signature}"
+    return token
+
+def verify_session_token(token: str):
+    try:
+        parts = token.split(".")
+        if len(parts) != 2:
+            return None
+        payload_bytes = base64.urlsafe_b64decode(parts[0].encode("utf-8"))
+        expected_sig = hmac.new(settings.JWT_SECRET.encode(), payload_bytes, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected_sig, parts[1]):
+            return None
+        return json.loads(payload_bytes.decode("utf-8"))
+    except Exception:
+        return None
+
+async def get_current_user(
+    token: Optional[str] = Query(None),
+    authorization: str = Header(None),
+    x_telegram_init_data: str = Header(None),
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    user_id = None
+    is_admin = False
+
+    # 1. Check Bearer token first
+    if authorization and authorization.startswith("Bearer "):
+        t = authorization.replace("Bearer ", "").strip()
+        data = verify_session_token(t)
+        if data:
+            user_id = data.get("uid")
+
+    # 2. Check query param token (for <audio> elements / direct links)
+    if not user_id and token:
+        data = verify_session_token(token)
+        if data:
+            user_id = data.get("uid")
+
+    # 3. If no valid token, check x_telegram_init_data header
+    if not user_id and x_telegram_init_data:
+        parsed = verify_telegram_init_data(x_telegram_init_data)
+        if parsed:
+            user_id = parsed.get("id")
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid Telegram authentication credentials")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized: User does not exist or session expired")
+
+    return user
+
+async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin and current_user.id not in settings.admin_ids:
+        raise HTTPException(status_code=403, detail="Forbidden: Admin access required")
+    return current_user
+
+@router.post("/telegram", response_model=AuthResponse)
+async def authenticate_telegram(req: TelegramInitDataRequest, db: AsyncSession = Depends(get_db)):
+    parsed_user = verify_telegram_init_data(req.init_data)
+
+    # In local testing, allow fallback if testing outside Telegram
+    if not parsed_user:
+        # Check if dummy dev init_data for testing
+        if req.init_data.startswith("test_user_"):
+            try:
+                t_id = int(req.init_data.replace("test_user_", ""))
+                parsed_user = {
+                    "id": t_id,
+                    "first_name": "Test User",
+                    "username": f"test_{t_id}"
+                }
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid Telegram initData signature")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid Telegram initData signature")
+
+    telegram_id = int(parsed_user["id"])
+    first_name = parsed_user.get("first_name", "")
+    last_name = parsed_user.get("last_name", "")
+    username = parsed_user.get("username", "")
+    language_code = parsed_user.get("language_code", "uz")
+    is_admin = is_admin_user(telegram_id)
+
+    result = await db.execute(select(User).where(User.id == telegram_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        user = User(
+            id=telegram_id,
+            first_name=first_name,
+            last_name=last_name,
+            username=username,
+            language_code=language_code,
+            is_admin=is_admin,
+            trial_count=0
+        )
+        db.add(user)
+    else:
+        user.first_name = first_name
+        user.last_name = last_name
+        user.username = username
+        user.is_admin = is_admin
+
+    await db.commit()
+    await db.refresh(user)
+
+    token = create_session_token(user.id, user.is_admin)
+
+    return AuthResponse(
+        success=True,
+        user=UserInfo(
+            id=user.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            username=user.username,
+            language_code=user.language_code,
+            trial_count=user.trial_count,
+            is_admin=user.is_admin
+        ),
+        token=token
+    )
