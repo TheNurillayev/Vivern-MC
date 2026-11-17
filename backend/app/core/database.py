@@ -27,11 +27,19 @@ async def get_db():
         finally:
             await session.close()
 
+from sqlalchemy import text
+
 async def init_db():
     # Import all models to ensure they are registered with Base.metadata
     import backend.app.models  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Safe column migrations for orders table
+        for col, col_type in [("custom_wishes_start_seconds", "FLOAT"), ("custom_call_ending_seconds", "FLOAT")]:
+            try:
+                await conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass
     await seed_default_library_assets()
 
 async def seed_default_library_assets():

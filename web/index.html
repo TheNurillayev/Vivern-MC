@@ -79,13 +79,38 @@
         </div>
       </div>
 
+      <!-- Optional Timing Customization -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleTimingSettings()">
+          <div class="card-title" style="margin-bottom: 0;">
+            <span>⏱️</span> Tabrik vaqti sozlamalari
+          </div>
+          <span id="timing-chevron" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: 600;">(Ixtiyoriy) ▼</span>
+        </div>
+        <div id="timing-inputs" class="hidden" style="margin-top: 14px;">
+          <div class="card-desc" style="margin-bottom: 12px; line-height: 1.5;">
+            Agar xohlasangiz, suhbatdagi tabrik va tilaklar boshlanishi va tugash vaqtini daqiqa:sekund shaklida kiriting (masalan, <b>0:35</b> yoki <b>1:45</b>). Bo'sh qoldirsangiz, tizim o'zi avtomatik hisoblaydi.
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Tilaklar boshlanishi:</label>
+              <input type="text" id="input-wishes-start" placeholder="Masalan: 0:35" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.85rem;">
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Tilaklar yakunlanishi:</label>
+              <input type="text" id="input-wishes-end" placeholder="Masalan: 1:50" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.85rem;">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Price & Order summary -->
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <span style="color: var(--text-muted);">Xizmat narxi:</span>
           <span id="order-price-label" style="font-weight: 700; color: var(--accent-gold); font-size: 1.1rem;">Bepul (Sinov)</span>
         </div>
-        <button id="btn-submit-order" class="btn btn-primary" onclick="submitAudioOrder()">
+        <button id="btn-submit-order" class="btn btn-primary" onclick="openConfirmModal()">
           🚀 Professional Audio Tayyorlash
         </button>
         <div id="upload-progress-container" class="hidden" style="margin-top: 14px; text-align: center;">
@@ -109,6 +134,46 @@
       </div>
     </div>
 
+    <!-- Page: Account Details -->
+    <div id="page-account" class="tab-content hidden">
+      <div class="card" style="text-align: center; padding: 25px 20px;">
+        <div style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-gold), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px; color: #fff; font-weight: bold;" id="acc-avatar">
+          👤
+        </div>
+        <div style="font-size: 1.2rem; font-weight: 700;" id="acc-name">Foydalanuvchi</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;" id="acc-username">@username</div>
+        <div style="margin-top: 10px;">
+          <span class="badge-tag" id="acc-id-badge">ID: ...</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>💳</span> Xizmat Balansi va Tarif</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: var(--text-muted);">Bepul sinovlar:</span>
+          <span id="acc-trial-status" style="font-weight: 600; color: var(--accent-emerald);">5 ta mavjud</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: var(--text-muted);">Oddiy buyurtma narxi:</span>
+          <span style="font-weight: 600; color: var(--accent-gold);">5,000 so'm</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+          <span style="color: var(--text-muted);">Jami buyurtmalarim:</span>
+          <span id="acc-total-orders" style="font-weight: 600;">0 ta</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>📞</span> Qo'llab-quvvatlash va Aloqa</div>
+        <div class="card-desc" style="margin: 8px 0 14px;">
+          Savollar, takliflar yoki to'lov bo'yicha yordam kerak bo'lsa, ma'muriyat bilan bog'laning.
+        </div>
+        <a href="https://t.me/TheNurillayev" target="_blank" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; padding: 12px; border-radius: 10px;">
+          <span>👑</span> Administrator bilan bog'lanish (@TheNurillayev)
+        </a>
+      </div>
+    </div>
+
     <!-- Page: Instructions -->
     <div id="page-instructions" class="tab-content hidden">
       <div class="card">
@@ -126,6 +191,21 @@
     </div>
   </main>
 
+  <!-- Confirmation Modal -->
+  <div id="modal-confirm" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div style="font-size: 2.2rem; margin-bottom: 8px;">✨</div>
+      <div style="font-weight: 700; font-size: 1.15rem; margin-bottom: 6px;">Audio Montajni Boshlash</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+        Tanlangan telefon suhbati va musiqa asosida professional audio montaj boshlansinmi?
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeConfirmModal()">Bekor qilish</button>
+        <button class="btn btn-primary" style="flex: 1.2;" onclick="proceedSubmitAudioOrder()">Tayyorlashni boshlash</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Bottom Navigation -->
   <nav class="tab-bar">
     <button id="tab-create" class="tab-btn active" onclick="switchTab('create')">
@@ -135,6 +215,10 @@
     <button id="tab-orders" class="tab-btn" onclick="switchTab('orders')">
       <svg fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
       <span>Tarix</span>
+    </button>
+    <button id="tab-account" class="tab-btn" onclick="switchTab('account')">
+      <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+      <span>Akkount</span>
     </button>
     <button id="tab-instructions" class="tab-btn" onclick="switchTab('instructions')">
       <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>

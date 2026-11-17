@@ -11,12 +11,13 @@ logger = logging.getLogger(__name__)
 
 class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
     """
-    OpenAI-based conversation classifier.
+    LLM-based conversation classifier (supports OpenAI and DeepSeek).
     Extracts wishes and ending section timestamps using structured JSON schema.
-    Falls back to Heuristic analyzer when API key is not configured.
+    Falls back to Heuristic analyzer when API keys are not configured.
     """
     def __init__(self):
-        self.api_key = settings.OPENAI_API_KEY
+        self.api_key = settings.OPENAI_API_KEY or settings.DEEPSEEK_API_KEY
+        self.is_deepseek = bool(settings.DEEPSEEK_API_KEY and not settings.OPENAI_API_KEY)
         self.fallback = HeuristicConversationAnalyzer()
 
     async def analyze_stages(
@@ -25,30 +26,35 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
         total_duration: float
     ) -> StageAnalysisResult:
         if not self.api_key:
-            logger.info("OpenAI API key not set, using heuristic conversation analyzer.")
+            logger.info("OpenAI or DeepSeek API key not set, using heuristic conversation analyzer.")
             return await self.fallback.analyze_stages(segments, total_duration)
 
         try:
-            # When OpenAI API key is provided, we can call OpenAI API via requests/httpx
             import httpx
             prompt = (
                 "You are an audio production assistant for Uzbek birthday phone call recordings.\n"
                 "Analyze the timestamped transcript and identify the exact seconds where:\n"
-                "1. The birthday wishes section begins (wishes_start_seconds)\n"
-                "2. The call ending/farewell section begins (call_ending_start_seconds)\n"
-                "Return only JSON with keys: wishes_start_seconds (float), call_ending_start_seconds (float), "
+                "1. The birthday wishes section begins (wishes_start_seconds), typically when caller says 'Avvalambor assalomu alaykum...' or begins wishing.\n"
+                "2. The call ending/farewell section begins (call_ending_start_seconds), typically after wishes conclude with '... deb qolamiz/qolibdilar' and farewell starts.\n"
+                "Return only valid JSON with keys: wishes_start_seconds (float), call_ending_start_seconds (float), "
                 "wishes_confidence (0.0-1.0), call_ending_confidence (0.0-1.0), warnings (list of strings).\n\n"
                 f"Total duration: {total_duration} seconds.\n"
                 f"Transcript segments: {[s.model_dump() for s in segments]}"
             )
 
+            api_url = "https://api.deepseek.com/chat/completions" if self.is_deepseek else "https://api.openai.com/v1/chat/completions"
+            model_name = "deepseek-chat" if self.is_deepseek else "gpt-4o-mini"
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 res = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
+                    api_url,
                     headers={"Authorization": f"Bearer {self.api_key}"},
                     json={
-                        "model": "gpt-4o-mini",
-                        "messages": [{"role": "user", "content": prompt}],
+                        "model": model_name,
+                        "messages": [
+                            {"role": "system", "content": "You are a helpful assistant that outputs only valid JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
                         "response_format": {"type": "json_object"}
                     }
                 )
@@ -57,8 +63,8 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
                     content = json.loads(data["choices"][0]["message"]["content"])
                     w_start = float(content.get("wishes_start_seconds", total_duration * 0.3))
                     e_start = float(content.get("call_ending_start_seconds", total_duration * 0.75))
-                    w_conf = float(content.get("wishes_confidence", 0.9))
-                    e_conf = float(content.get("call_ending_confidence", 0.9))
+                    w_conf = float(content.get("wishes_confidence", 0.95))
+                    e_conf = float(content.get("call_ending_confidence", 0.90))
                     warnings = content.get("warnings", [])
                     overall = round((w_conf + e_conf) / 2.0, 2)
 
@@ -73,6 +79,6 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
                         transcript_segments=[{"start": s.start_seconds, "end": s.end_seconds, "text": s.text} for s in segments]
                     )
         except Exception as e:
-            logger.error(f"OpenAI analysis call failed: {e}, using heuristic fallback.")
+            logger.error(f"LLM stage analysis call failed: {e}, using heuristic fallback.")
 
         return await self.fallback.analyze_stages(segments, total_duration)

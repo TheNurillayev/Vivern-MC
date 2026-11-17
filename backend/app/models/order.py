@@ -19,6 +19,10 @@ class Order(Base):
     special_music_path: Mapped[str] = mapped_column(String(512), default="")
     special_music_name: Mapped[str] = mapped_column(String(255), default="")
 
+    # Custom timings (if specified by customer)
+    custom_wishes_start_seconds: Mapped[float] = mapped_column(Float, nullable=True)
+    custom_call_ending_seconds: Mapped[float] = mapped_column(Float, nullable=True)
+
     # Output file paths
     output_audio_path: Mapped[str] = mapped_column(String(512), default="")
     output_audio_duration: Mapped[float] = mapped_column(Float, default=0.0)

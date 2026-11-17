@@ -22,6 +22,8 @@ router = APIRouter(prefix="/api/orders", tags=["orders"])
 async def create_order(
     original_recording: UploadFile = File(...),
     special_music: UploadFile = File(...),
+    custom_wishes_start_seconds: Optional[float] = Form(None),
+    custom_call_ending_seconds: Optional[float] = Form(None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -101,6 +103,8 @@ async def create_order(
         original_recording_name=original_recording.filename or "recording.mp3",
         special_music_path=saved_spec_path,
         special_music_name=special_music.filename or "special.mp3",
+        custom_wishes_start_seconds=custom_wishes_start_seconds,
+        custom_call_ending_seconds=custom_call_ending_seconds,
         price_som=price,
         is_free_trial=is_free,
         is_paid=is_free  # Trial orders are automatically considered paid

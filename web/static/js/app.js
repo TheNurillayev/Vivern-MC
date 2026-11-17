@@ -71,6 +71,17 @@
     if (currentUser.is_admin && adminTab) {
       adminTab.classList.remove("hidden");
     }
+
+    // Populate Account Page details
+    const accName = document.getElementById("acc-name");
+    const accUsername = document.getElementById("acc-username");
+    const accIdBadge = document.getElementById("acc-id-badge");
+    const accTrial = document.getElementById("acc-trial-status");
+    const fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() || "Foydalanuvchi";
+    if (accName) accName.textContent = fullName;
+    if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : `ID: ${currentUser.id}`;
+    if (accIdBadge) accIdBadge.textContent = `Telegram ID: ${currentUser.id}`;
+    if (accTrial) accTrial.textContent = remaining > 0 ? `${remaining} ta bepul (5 tadan)` : "Tugagan (Pullik rejim)";
   }
 
   window.switchTab = function (tabId) {
@@ -116,6 +127,57 @@
     }
   }
 
+  // Timing settings toggle
+  window.toggleTimingSettings = function () {
+    const el = document.getElementById("timing-inputs");
+    const chevron = document.getElementById("timing-chevron");
+    if (!el) return;
+    if (el.classList.contains("hidden")) {
+      el.classList.remove("hidden");
+      if (chevron) chevron.textContent = "(Ixtiyoriy) ▲";
+    } else {
+      el.classList.add("hidden");
+      if (chevron) chevron.textContent = "(Ixtiyoriy) ▼";
+    }
+  };
+
+  // Confirmation Modal controls
+  window.openConfirmModal = function () {
+    if (!originalFile) {
+      alert("Iltimos, telefon suhbati audiosini tanlang!");
+      return;
+    }
+    if (!specialFile) {
+      alert("Iltimos, sevimli musiqa faylini tanlang!");
+      return;
+    }
+    const modal = document.getElementById("modal-confirm");
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeConfirmModal = function () {
+    const modal = document.getElementById("modal-confirm");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  window.proceedSubmitAudioOrder = async function () {
+    closeConfirmModal();
+    await submitAudioOrder();
+  };
+
+  function parseTimeStringToSeconds(str) {
+    if (!str || !str.trim()) return null;
+    str = str.trim();
+    if (str.includes(":")) {
+      const parts = str.split(":");
+      const m = parseFloat(parts[0]) || 0;
+      const s = parseFloat(parts[1]) || 0;
+      return m * 60 + s;
+    }
+    const val = parseFloat(str);
+    return isNaN(val) ? null : val;
+  }
+
   window.submitAudioOrder = async function () {
     if (!originalFile) {
       alert("Iltimos, telefon suhbati audiosini tanlang!");
@@ -139,6 +201,14 @@
     formData.append("original_recording", originalFile);
     formData.append("special_music", specialFile);
 
+    // Optional custom timings
+    const wStartInput = document.getElementById("input-wishes-start")?.value;
+    const wEndInput = document.getElementById("input-wishes-end")?.value;
+    const wStart = parseTimeStringToSeconds(wStartInput);
+    const wEnd = parseTimeStringToSeconds(wEndInput);
+    if (wStart !== null) formData.append("custom_wishes_start_seconds", wStart);
+    if (wEnd !== null) formData.append("custom_call_ending_seconds", wEnd);
+
     try {
       const res = await fetch("/api/orders/create", {
         method: "POST",
@@ -160,6 +230,8 @@
       document.getElementById("file-info-special").classList.add("hidden");
       document.getElementById("input-original").value = "";
       document.getElementById("input-special").value = "";
+      if (document.getElementById("input-wishes-start")) document.getElementById("input-wishes-start").value = "";
+      if (document.getElementById("input-wishes-end")) document.getElementById("input-wishes-end").value = "";
 
       // Switch to orders history
       switchTab("orders");
@@ -188,6 +260,11 @@
       });
       if (!res.ok) throw new Error("Buyurtmalarni yuklab bo'lmadi");
       const orders = await res.json();
+
+      const totalOrdersEl = document.getElementById("acc-total-orders");
+      if (totalOrdersEl && Array.isArray(orders)) {
+        totalOrdersEl.textContent = `${orders.length} ta`;
+      }
 
       if (orders.length === 0) {
         listEl.innerHTML = `

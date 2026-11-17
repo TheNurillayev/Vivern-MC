@@ -96,6 +96,17 @@ async def process_single_order(order_id: str):
             order.status = "rendering"
             await session.commit()
 
+            # Determine final timing: customer custom timing takes priority over automated analysis
+            if order.custom_wishes_start_seconds is not None and order.custom_wishes_start_seconds > 0:
+                final_wishes_start = float(order.custom_wishes_start_seconds)
+            else:
+                final_wishes_start = float(analysis.wishes_start_seconds)
+
+            if order.custom_call_ending_seconds is not None and order.custom_call_ending_seconds > final_wishes_start:
+                final_ending_start = float(order.custom_call_ending_seconds)
+            else:
+                final_ending_start = float(analysis.call_ending_start_seconds)
+
             render_res = audio_renderer.render_production(
                 order_id=order.id,
                 original_recording_path=order.original_recording_path,
@@ -104,8 +115,8 @@ async def process_single_order(order_id: str):
                 starter_music_path=starter_path,
                 wishes_music_path=wishes_path,
                 call_ending_path=ending_path,
-                wishes_start_seconds=analysis.wishes_start_seconds,
-                call_ending_start_seconds=analysis.call_ending_start_seconds
+                wishes_start_seconds=final_wishes_start,
+                call_ending_start_seconds=final_ending_start
             )
 
             order.output_audio_path = render_res["output_path"]

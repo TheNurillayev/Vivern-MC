@@ -28,6 +28,7 @@ class Settings(BaseSettings):
 
     ANALYSIS_PROVIDER: str = "heuristic"
     OPENAI_API_KEY: str = ""
+    DEEPSEEK_API_KEY: str = ""
 
     PRICE_PER_ORDER_SOM: int = 5000
     FREE_TRIAL_GENERATIONS: int = 5
