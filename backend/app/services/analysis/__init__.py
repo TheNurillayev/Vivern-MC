@@ -4,7 +4,11 @@ from backend.app.services.analysis.heuristic_adapter import HeuristicConversatio
 from backend.app.services.analysis.openai_adapter import OpenAIConversationAnalyzer
 
 def get_conversation_analyzer() -> BaseConversationAnalyzer:
-    if settings.ANALYSIS_PROVIDER == "openai":
+    if (
+        settings.ANALYSIS_PROVIDER in ["openai", "deepseek"]
+        or bool(settings.DEEPSEEK_API_KEY)
+        or bool(settings.OPENAI_API_KEY)
+    ):
         return OpenAIConversationAnalyzer()
     return HeuristicConversationAnalyzer()
 
