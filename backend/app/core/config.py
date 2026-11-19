@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     DEEPSEEK_API_KEY: str = ""
     GROQ_API_KEY: str = ""
+    GLADIA_API_KEY: str = ""
 
     PRICE_PER_ORDER_SOM: int = 5000
     FREE_TRIAL_GENERATIONS: int = 5
