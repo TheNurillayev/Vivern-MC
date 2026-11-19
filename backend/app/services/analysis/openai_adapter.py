@@ -39,19 +39,24 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
                 if t and len(t) > 1:
                     cleaned_segments.append({"start": s.start_seconds, "end": s.end_seconds, "text": t})
 
-            prompt = (
-                "You are a studio audio mastering director for Uzbek birthday phone call recordings.\n"
-                "We must place 3 background music tracks behind the call:\n"
-                "1. STARTER BG: Plays during the opening conversation, greetings, playful guessing game, and preamble.\n"
-                "2. WISHES BG (wishes_start_seconds): Starts when the host begins reading the formal birthday wish / congratulatory letter / poem (e.g. 'Avvalambor assalomu alaykum, men uchun aziz bolgan akajonim...').\n"
-                "3. CALL ENDING BG (call_ending_start_seconds): Starts when the birthday wish / poem reading FINISHES (e.g. 'Deya nomalarga yakun yasaymiz...', 'deb qolibdilar'), transitioning to the wrap-up discussion where the host asks how the recipient felt and begins final remarks.\n\n"
-                "CRITICAL INSTRUCTIONS:\n"
-                "- Do NOT pick early casual greetings (e.g. before 1-2 minutes) as wishes_start_seconds!\n"
-                "- 'call_ending_start_seconds' is the exact moment the wish/poem reading ends, NOT the end of the entire phone call.\n\n"
-                f"Total duration: {total_duration} seconds.\n"
-                f"Transcript segments: {cleaned_segments}\n\n"
+            system_prompt = (
+                "You are an expert audio mastering director analyzing the semantic meaning, speech acts, and conversational tone of Uzbek birthday phone calls.\n\n"
+                "Calls have 3 phases with completely different communicative intents and discourse registers:\n"
+                "1. INTERACTIVE CHIT-CHAT (Starter BG): Host and recipient chatting back-and-forth, teasing, asking who called, getting ready.\n"
+                "   Note: Casual polite pleasantries like 'tabriklaymiz', 'sog'lik tilayman', or 'omon bo'ling' at the start are just conversational lubrication, NOT the dedicated wish monologue!\n"
+                "2. DEDICATION MONOLOGUE (Wishes BG): The speech act shifts from 2-way dialogue to a 1-way literary/emotional reading of a letter, poem, or heartfelt message dedicated to the recipient.\n"
+                "   Note: It does NOT require formulaic greetings like 'avvalambor' — detect it by the register shift into poetic, personal, emotionally intense dedication addressed to or honoring the recipient.\n"
+                "3. POST-DEDICATION DIALOGUE & FAREWELL (Call Ending BG): The reading stops, and the host returns to interactive conversation, asking for the recipient's reaction, reflections, and closing goodbyes.\n\n"
+                "Identify:\n"
+                "- wishes_start_seconds: Exact timestamp where the reading/dedication monologue begins.\n"
+                "- call_ending_start_seconds: Exact timestamp where the dedication monologue ends and the host asks for reactions / wraps up.\n\n"
                 "Return ONLY valid JSON with keys: wishes_start_seconds (float), call_ending_start_seconds (float), "
-                "wishes_confidence (0.0-1.0), call_ending_confidence (0.0-1.0), warnings (list of strings)."
+                "wishes_confidence (0.0-1.0), call_ending_confidence (0.0-1.0), reasoning (string), warnings (list of strings)."
+            )
+
+            user_prompt = (
+                f"Total audio duration: {total_duration} seconds.\n"
+                f"Timestamped transcript segments:\n{cleaned_segments}"
             )
 
             api_url = "https://api.deepseek.com/chat/completions" if self.is_deepseek else "https://api.openai.com/v1/chat/completions"
@@ -64,8 +69,8 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
                     json={
                         "model": model_name,
                         "messages": [
-                            {"role": "system", "content": "You are a helpful assistant that outputs only valid JSON."},
-                            {"role": "user", "content": prompt}
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
                         ],
                         "response_format": {"type": "json_object"}
                     }
@@ -77,6 +82,9 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
                     e_start = float(content.get("call_ending_start_seconds", total_duration * 0.75))
                     w_conf = float(content.get("wishes_confidence", 0.95))
                     e_conf = float(content.get("call_ending_confidence", 0.90))
+                    reasoning = content.get("reasoning", "")
+                    if reasoning:
+                        logger.info(f"AI Stage Analysis Reasoning: {reasoning}")
                     warnings = content.get("warnings", [])
                     overall = round((w_conf + e_conf) / 2.0, 2)
 
