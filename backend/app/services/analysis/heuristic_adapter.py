@@ -6,8 +6,9 @@ from backend.app.services.analysis.base import BaseConversationAnalyzer, StageAn
 logger = logging.getLogger(__name__)
 
 WISHES_KEYWORDS = [
-    "avvalambor", "assalomu alaykum", "tug'ilgan kun", "muborak", "tabriklay", 
-    "qutlay", "tilayman", "tilaymiz", "yosh", "baxt", "omad", "umr", "sog'lik", "tavallud"
+    "avvalambor", "avvalam bor", "tug'ilgan kun", "muborak", "tabriklay", 
+    "qutlay", "tilayman", "tilaymiz", "yosh", "baxt", "omad", "umr", "sog'lik", 
+    "tavallud", "ruxsatingiz bilan", "dil izhor", "niyat qilib"
 ]
 
 ENDING_KEYWORDS = [

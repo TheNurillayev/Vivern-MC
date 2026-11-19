@@ -111,6 +111,25 @@
           originalFile = file;
           document.getElementById("filename-original").textContent = `${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
           document.getElementById("file-info-original").classList.remove("hidden");
+
+          // Setup in-app audio preview player
+          const audioEl = document.getElementById("audio-preview-original");
+          const playerCont = document.getElementById("player-container");
+          if (audioEl && playerCont) {
+            audioEl.src = URL.createObjectURL(file);
+            playerCont.classList.remove("hidden");
+            const timingInputs = document.getElementById("timing-inputs");
+            if (timingInputs) timingInputs.classList.remove("hidden");
+            const chevron = document.getElementById("timing-chevron");
+            if (chevron) chevron.textContent = "(Ixtiyoriy) ▲";
+
+            audioEl.ontimeupdate = () => {
+              const m = Math.floor(audioEl.currentTime / 60);
+              const s = Math.floor(audioEl.currentTime % 60);
+              const disp = document.getElementById("player-time-display");
+              if (disp) disp.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            };
+          }
         }
       });
     }
@@ -126,6 +145,32 @@
       });
     }
   }
+
+  window.markCurrentTimeToWishesStart = function () {
+    const audioEl = document.getElementById("audio-preview-original");
+    if (!audioEl || isNaN(audioEl.currentTime)) return;
+    const m = Math.floor(audioEl.currentTime / 60);
+    const s = Math.floor(audioEl.currentTime % 60);
+    const val = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    const input = document.getElementById("input-wishes-start");
+    if (input) {
+      input.value = val;
+      input.style.borderColor = "var(--accent-gold)";
+    }
+  };
+
+  window.markCurrentTimeToWishesEnd = function () {
+    const audioEl = document.getElementById("audio-preview-original");
+    if (!audioEl || isNaN(audioEl.currentTime)) return;
+    const m = Math.floor(audioEl.currentTime / 60);
+    const s = Math.floor(audioEl.currentTime % 60);
+    const val = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    const input = document.getElementById("input-wishes-end");
+    if (input) {
+      input.value = val;
+      input.style.borderColor = "var(--accent-purple)";
+    }
+  };
 
   // Timing settings toggle
   window.toggleTimingSettings = function () {
@@ -228,6 +273,17 @@
       specialFile = null;
       document.getElementById("file-info-original").classList.add("hidden");
       document.getElementById("file-info-special").classList.add("hidden");
+      const audioEl = document.getElementById("audio-preview-original");
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.removeAttribute("src");
+      }
+      const playerCont = document.getElementById("player-container");
+      if (playerCont) playerCont.classList.add("hidden");
+      const wStartEl = document.getElementById("input-wishes-start");
+      const wEndEl = document.getElementById("input-wishes-end");
+      if (wStartEl) wStartEl.value = "";
+      if (wEndEl) wEndEl.value = "";
       document.getElementById("input-original").value = "";
       document.getElementById("input-special").value = "";
       if (document.getElementById("input-wishes-start")) document.getElementById("input-wishes-start").value = "";
