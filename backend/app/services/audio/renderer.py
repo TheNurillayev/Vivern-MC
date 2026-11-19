@@ -34,7 +34,8 @@ class AudioProductionRenderer:
         wishes_start_seconds: float,
         call_ending_start_seconds: float,
         outro_max_duration: float = 30.0,
-        music_volume_db: float = -20.0
+        music_volume_db: float = -19.0,
+        special_music_volume: float = 0.58
     ) -> Dict[str, Any]:
         ffmpeg_bin = get_ffmpeg_path()
 
@@ -60,7 +61,7 @@ class AudioProductionRenderer:
         if os.path.exists(output_path):
             os.remove(output_path)
 
-        # Convert music volume db to linear gain (-20 dB is approx 0.100 for audible background)
+        # Convert music volume db to linear gain (-19 dB is approx 0.1122 for audible background)
         linear_gain = round(10 ** (music_volume_db / 20.0), 4)
 
         # 2-second seamless crossfade between background music sections
@@ -99,7 +100,7 @@ class AudioProductionRenderer:
             f"[bg1][bg2][bg3]amix=inputs=3:normalize=0:duration=longest[a_bg_music];"
             f"[a_speech][a_bg_music]amix=inputs=2:normalize=0:duration=first[a_call_mixed];"
             f"[a_intro][a_call_mixed]concat=n=2:v=0:a=1[a_full_call];"
-            f"[5:a]atrim=0:{outro_dur},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume=0.95,"
+            f"[5:a]atrim=0:{outro_dur},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume={special_music_volume},"
             f"afade=t=in:st=0:d=1.0,afade=t=out:st={max(0, outro_dur - 1.5)}:d=1.5[a_outro];"
             f"[a_full_call][a_outro]concat=n=2:v=0:a=1[out_a]"
         )
@@ -145,6 +146,7 @@ class AudioProductionRenderer:
             "ending_duration": dur3,
             "outro_duration": outro_dur,
             "music_volume_db": music_volume_db,
+            "special_music_volume": special_music_volume,
             "total_output_duration": out_meta["duration_seconds"]
         }
 
