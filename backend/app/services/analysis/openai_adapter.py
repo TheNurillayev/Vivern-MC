@@ -31,15 +31,27 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
 
         try:
             import httpx
+
+            # Clean segments for LLM (filter noise / empty segments)
+            cleaned_segments = []
+            for s in segments:
+                t = s.text.strip()
+                if t and len(t) > 1:
+                    cleaned_segments.append({"start": s.start_seconds, "end": s.end_seconds, "text": t})
+
             prompt = (
-                "You are an audio production assistant for Uzbek birthday phone call recordings.\n"
-                "Analyze the timestamped transcript and identify the exact seconds where:\n"
-                "1. The birthday wishes section begins (wishes_start_seconds), typically when caller says 'Avvalambor assalomu alaykum...' or begins wishing.\n"
-                "2. The call ending/farewell section begins (call_ending_start_seconds), typically after wishes conclude with '... deb qolamiz/qolibdilar' and farewell starts.\n"
-                "Return only valid JSON with keys: wishes_start_seconds (float), call_ending_start_seconds (float), "
-                "wishes_confidence (0.0-1.0), call_ending_confidence (0.0-1.0), warnings (list of strings).\n\n"
+                "You are a studio audio mastering director for Uzbek birthday phone call recordings.\n"
+                "We must place 3 background music tracks behind the call:\n"
+                "1. STARTER BG: Plays during the opening conversation, greetings, playful guessing game, and preamble.\n"
+                "2. WISHES BG (wishes_start_seconds): Starts when the host begins reading the formal birthday wish / congratulatory letter / poem (e.g. 'Avvalambor assalomu alaykum, men uchun aziz bolgan akajonim...').\n"
+                "3. CALL ENDING BG (call_ending_start_seconds): Starts when the birthday wish / poem reading FINISHES (e.g. 'Deya nomalarga yakun yasaymiz...', 'deb qolibdilar'), transitioning to the wrap-up discussion where the host asks how the recipient felt and begins final remarks.\n\n"
+                "CRITICAL INSTRUCTIONS:\n"
+                "- Do NOT pick early casual greetings (e.g. before 1-2 minutes) as wishes_start_seconds!\n"
+                "- 'call_ending_start_seconds' is the exact moment the wish/poem reading ends, NOT the end of the entire phone call.\n\n"
                 f"Total duration: {total_duration} seconds.\n"
-                f"Transcript segments: {[s.model_dump() for s in segments]}"
+                f"Transcript segments: {cleaned_segments}\n\n"
+                "Return ONLY valid JSON with keys: wishes_start_seconds (float), call_ending_start_seconds (float), "
+                "wishes_confidence (0.0-1.0), call_ending_confidence (0.0-1.0), warnings (list of strings)."
             )
 
             api_url = "https://api.deepseek.com/chat/completions" if self.is_deepseek else "https://api.openai.com/v1/chat/completions"

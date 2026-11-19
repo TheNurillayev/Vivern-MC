@@ -23,14 +23,14 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///storage/vivern.db"
     STORAGE_DIR: str = "storage"
 
-    SPEECH_PROVIDER: str = "mock"
+    SPEECH_PROVIDER: str = os.getenv("SPEECH_PROVIDER", "gladia")
     GOOGLE_APPLICATION_CREDENTIALS: str = ""
 
-    ANALYSIS_PROVIDER: str = "heuristic"
-    OPENAI_API_KEY: str = ""
-    DEEPSEEK_API_KEY: str = ""
-    GROQ_API_KEY: str = ""
-    GLADIA_API_KEY: str = ""
+    ANALYSIS_PROVIDER: str = os.getenv("ANALYSIS_PROVIDER", "deepseek")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GLADIA_API_KEY: str = os.getenv("GLADIA_API_KEY", "")
 
     PRICE_PER_ORDER_SOM: int = 5000
     FREE_TRIAL_GENERATIONS: int = 5

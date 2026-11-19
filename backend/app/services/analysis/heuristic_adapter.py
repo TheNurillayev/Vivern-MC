@@ -5,22 +5,32 @@ from backend.app.services.analysis.base import BaseConversationAnalyzer, StageAn
 
 logger = logging.getLogger(__name__)
 
-WISHES_KEYWORDS = [
-    "avvalambor", "avvalam bor", "tug'ilgan kun", "muborak", "tabriklay", 
-    "qutlay", "tilayman", "tilaymiz", "yosh", "baxt", "omad", "umr", "sog'lik", 
-    "tavallud", "ruxsatingiz bilan", "dil izhor", "niyat qilib"
+PRIMARY_WISHES_MARKERS = [
+    "avvalambor", "avvalam bor", "ruxsatingiz bilan", "dil izhor", 
+    "nomadan yetib", "o'qib eshittir", "oqib eshittir", "tabriknoma"
 ]
 
-ENDING_KEYWORDS = [
-    "deb qolibdilar", "deb qolamiz", "deb niyat", "deb tilab", "rahmat", 
+GENERAL_WISHES_KEYWORDS = [
+    "tug'ilgan kun", "muborak", "tabriklay", "qutlay", "tilayman", 
+    "tilaymiz", "yosh", "baxt", "omad", "umr", "tavallud"
+]
+
+ENDING_POEM_MARKERS = [
+    "deya", "diye", "deb qolibdilar", "deb qolamiz", "deb niyat", 
+    "deb tilab", "nomalarga yakun", "yakun yasay", "yakuniga yet", 
+    "she'rimiz", "aytmoqchi bo'lgan"
+]
+
+ENDING_FAREWELL_KEYWORDS = [
     "salomat bo'ling", "sog' bo'ling", "xayr", "mayli", "ko'rishguncha", 
-    "gaplashamiz", "yaxshi qoling", "sog' bo'l"
+    "yaxshi qoling", "omon bo'ling", "minnatdormiz"
 ]
 
 class HeuristicConversationAnalyzer(BaseConversationAnalyzer):
     """
     Analyzes Uzbek transcript segments using conversation keyword detection
     and temporal positioning to detect transition points.
+    Distinguishes casual introductory banter from the formal wish/letter reading.
     """
     async def analyze_stages(
         self,
@@ -47,35 +57,61 @@ class HeuristicConversationAnalyzer(BaseConversationAnalyzer):
         wishes_idx = None
         ending_idx = None
 
-        # Search for wishes keyword
+        # Introductory banter in birthday radio calls usually lasts at least 30-45s
+        min_wishes_time = 35.0 if total_duration > 90.0 else 5.0
+
+        # Phase 1: Search for primary wish markers after introductory banter
         for i, seg in enumerate(segments):
+            if seg.start_seconds < min_wishes_time:
+                continue
             text_lower = seg.text.lower()
-            if any(k in text_lower for k in WISHES_KEYWORDS):
+            if any(k in text_lower for k in PRIMARY_WISHES_MARKERS):
                 wishes_idx = i
                 break
 
-        # Search for ending keyword (scanning backwards or after wishes)
-        for i in range(len(segments) - 1, -1, -1):
-            text_lower = segments[i].text.lower()
-            if any(k in text_lower for k in ENDING_KEYWORDS):
-                ending_idx = i
-                break
+        # Phase 2: If not found, search general wishes keywords after min_wishes_time
+        if wishes_idx is None:
+            for i, seg in enumerate(segments):
+                if seg.start_seconds < min_wishes_time:
+                    continue
+                text_lower = seg.text.lower()
+                if any(k in text_lower for k in GENERAL_WISHES_KEYWORDS):
+                    wishes_idx = i
+                    break
 
-        # Calculate timestamps and confidences
+        # Phase 3: Fallback for very short recordings
+        if wishes_idx is None:
+            for i, seg in enumerate(segments):
+                text_lower = seg.text.lower()
+                if any(k in text_lower for k in PRIMARY_WISHES_MARKERS + GENERAL_WISHES_KEYWORDS):
+                    wishes_idx = i
+                    break
+
         wishes_confidence = 0.95 if wishes_idx is not None else 0.45
-        ending_confidence = 0.90 if ending_idx is not None else 0.40
-
         if wishes_idx is not None:
             wishes_start = segments[wishes_idx].start_seconds
         else:
             wishes_start = round(total_duration * 0.30, 1)
             warnings.append("Tug'ilgan kun tilaklari qismi aniq topilmadi, standart oraliq tavsiya etildi.")
 
-        if ending_idx is not None and (wishes_idx is None or ending_idx > wishes_idx):
+        # Phase 4: Search forward for wish conclusion / poem end (at least 25s after wishes_start)
+        min_ending_time = wishes_start + 25.0
+        if wishes_idx is not None:
+            for i in range(wishes_idx + 1, len(segments)):
+                if segments[i].start_seconds < min_ending_time:
+                    continue
+                text_lower = segments[i].text.lower()
+                if any(k in text_lower for k in ENDING_POEM_MARKERS):
+                    ending_idx = i
+                    break
+
+        ending_confidence = 0.90 if ending_idx is not None else 0.45
+        if ending_idx is not None:
             ending_start = segments[ending_idx].start_seconds
         else:
-            ending_start = round(total_duration * 0.75, 1)
-            warnings.append("Qo'ng'iroq yakunlash qismi aniq topilmadi, standart oraliq tavsiya etildi.")
+            # If explicit poem end marker not found, check for wrap-up discussion transition
+            ending_start = round(min(total_duration - 10.0, max(wishes_start + 45.0, total_duration * 0.70)), 1)
+            warnings.append("Tilak yakuni belgisi topilmadi, umumiy oraliq tavsiya etildi.")
 
         # Sanity checks
         if wishes_start >= ending_start:
