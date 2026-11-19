@@ -53,6 +53,9 @@ class GladiaSpeechRecognizer(BaseSpeechRecognizer):
                 pre_recorded_url = "https://api.gladia.io/v2/pre-recorded"
                 payload = {
                     "audio_url": audio_url,
+                    "language_config": {
+                        "languages": [language]
+                    },
                     "diarization": False
                 }
                 job_res = await client.post(pre_recorded_url, headers={**headers, "Content-Type": "application/json"}, json=payload)
