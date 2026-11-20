@@ -51,10 +51,15 @@ class Settings(BaseSettings):
 
     @property
     def storage_path(self) -> Path:
-        raw_storage = os.getenv("STORAGE_DIR", self.STORAGE_DIR)
-        p = Path(raw_storage)
-        if not p.is_absolute():
-            p = BASE_DIR / raw_storage
+        # Detect Railway Volume mount path if attached by user in Railway
+        railway_vol = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
+        if railway_vol and railway_vol.strip():
+            p = Path(railway_vol.strip())
+        else:
+            raw_storage = os.getenv("STORAGE_DIR", self.STORAGE_DIR)
+            p = Path(raw_storage)
+            if not p.is_absolute():
+                p = BASE_DIR / raw_storage
         p.mkdir(parents=True, exist_ok=True)
         (p / "library").mkdir(exist_ok=True)
         (p / "uploads").mkdir(exist_ok=True)

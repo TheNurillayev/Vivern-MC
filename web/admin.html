@@ -686,9 +686,6 @@
                   Format: ${activeTrack.format.toUpperCase()} | Davomiyligi: ${activeTrack.duration_seconds}s
                 </div>
                 <audio controls src="/api/admin/assets/${activeTrack.id}/preview" preload="none"></audio>
-                <div class="action-btn-row" style="margin-top: 6px;">
-                  <button onclick="openRenameModal('${activeTrack.id}', '${safeActiveTitle}', '${cat.id}')" class="btn-sm btn-rename">✏️ Nomni o'zgartirish</button>
-                </div>
               </div>
             `;
           }

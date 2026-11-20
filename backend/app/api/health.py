@@ -28,7 +28,11 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         pass
 
     # Check Storage
-    storage_ok = settings.storage_path.exists()
+    storage_path = settings.storage_path
+    storage_ok = storage_path.exists()
+    is_mount = os.path.ismount(str(storage_path))
+    railway_vol_path = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
+    railway_vol_name = os.getenv("RAILWAY_VOLUME_NAME")
 
     return {
         "status": "healthy" if db_ok and ffmpeg_ok and storage_ok else "degraded",
@@ -44,7 +48,10 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         },
         "storage": {
             "available": storage_ok,
-            "path": str(settings.storage_path)
+            "path": str(storage_path),
+            "is_mount": is_mount,
+            "railway_volume_mount_path": railway_vol_path,
+            "railway_volume_name": railway_vol_name
         },
         "bot": {
             "configured": bool(settings.TELEGRAM_BOT_TOKEN),

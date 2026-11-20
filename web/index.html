@@ -19,7 +19,7 @@
     </div>
     <div class="user-badge">
       <span id="user-name">Yuklanmoqda...</span>
-      <span id="trial-badge" class="badge-tag">5 ta bepul</span>
+      <span id="trial-badge" class="badge-tag">3 ta bepul</span>
     </div>
   </header>
 
@@ -141,48 +141,48 @@
             </div>
 
             <!-- Starter Music -->
-            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08);">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08); box-sizing: border-box;">
               <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 6px;">
                 <span>1. Kirish suhbati musiqasi</span>
                 <span style="color: var(--accent-gold); font-size: 0.72rem;">(Starter)</span>
               </label>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <select id="select-starter-music" style="flex: 1; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem;" onchange="onBgMusicSelectChange('starter')">
+              <div style="display: flex; gap: 8px; align-items: center; width: 100%; box-sizing: border-box;">
+                <select id="select-starter-music" style="flex: 1 1 0; min-width: 0; width: 100%; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" onchange="onBgMusicSelectChange('starter')">
                   <option value="">Standart musiqa</option>
                 </select>
-                <button type="button" id="btn-preview-starter" class="btn" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff;" onclick="togglePlayBgPreview('starter')">
+                <button type="button" id="btn-preview-starter" class="btn" style="flex: 0 0 42px; width: 42px; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff; border-radius: 8px; flex-shrink: 0;" onclick="togglePlayBgPreview('starter')">
                   ▶️
                 </button>
               </div>
             </div>
 
             <!-- Wishes Music -->
-            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08);">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08); box-sizing: border-box;">
               <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 6px;">
                 <span>2. Tabrik va tilaklar musiqasi</span>
                 <span style="color: var(--accent-gold); font-size: 0.72rem;">(Wishes)</span>
               </label>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <select id="select-wishes-music" style="flex: 1; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem;" onchange="onBgMusicSelectChange('wishes')">
+              <div style="display: flex; gap: 8px; align-items: center; width: 100%; box-sizing: border-box;">
+                <select id="select-wishes-music" style="flex: 1 1 0; min-width: 0; width: 100%; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" onchange="onBgMusicSelectChange('wishes')">
                   <option value="">Standart musiqa</option>
                 </select>
-                <button type="button" id="btn-preview-wishes" class="btn" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff;" onclick="togglePlayBgPreview('wishes')">
+                <button type="button" id="btn-preview-wishes" class="btn" style="flex: 0 0 42px; width: 42px; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff; border-radius: 8px; flex-shrink: 0;" onclick="togglePlayBgPreview('wishes')">
                   ▶️
                 </button>
               </div>
             </div>
 
             <!-- Ending Music -->
-            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.08);">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.08); box-sizing: border-box;">
               <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 6px;">
                 <span>3. Yakunlash suhbati musiqasi</span>
                 <span style="color: var(--accent-gold); font-size: 0.72rem;">(Ending)</span>
               </label>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <select id="select-ending-music" style="flex: 1; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem;" onchange="onBgMusicSelectChange('ending')">
+              <div style="display: flex; gap: 8px; align-items: center; width: 100%; box-sizing: border-box;">
+                <select id="select-ending-music" style="flex: 1 1 0; min-width: 0; width: 100%; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" onchange="onBgMusicSelectChange('ending')">
                   <option value="">Standart musiqa</option>
                 </select>
-                <button type="button" id="btn-preview-ending" class="btn" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff;" onclick="togglePlayBgPreview('ending')">
+                <button type="button" id="btn-preview-ending" class="btn" style="flex: 0 0 42px; width: 42px; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff; border-radius: 8px; flex-shrink: 0;" onclick="togglePlayBgPreview('ending')">
                   ▶️
                 </button>
               </div>

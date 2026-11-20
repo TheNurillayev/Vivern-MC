@@ -79,7 +79,7 @@
     const fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() || "Foydalanuvchi";
     if (accName) accName.textContent = fullName;
     if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : "";
-    if (accTrial) accTrial.textContent = remaining > 0 ? `${remaining} ta bepul (3 tadan)` : "Tugagan (Pullik rejim)";
+    if (accTrial) accTrial.textContent = remaining > 0 ? `${remaining} ta bepul` : "Tugagan (Pullik rejim)";
   }
 
   window.switchTab = function (tabId) {
