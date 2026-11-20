@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     GLADIA_API_KEY: str = os.getenv("GLADIA_API_KEY", "")
 
     PRICE_PER_ORDER_SOM: int = 5000
-    FREE_TRIAL_GENERATIONS: int = 5
+    FREE_TRIAL_GENERATIONS: int = 3
     JWT_SECRET: str = "vivern_mc_default_secret_key"
 
     @property

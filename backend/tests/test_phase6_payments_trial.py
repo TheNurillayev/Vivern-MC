@@ -35,14 +35,14 @@ def test_free_trial_and_paid_transition():
     assert data_1["price_som"] == 0
     assert data_1["status"] == "queued"
 
-    # 2. Simulate user having used all 5 free trial generations
-    async def set_trial_count_5():
+    # 2. Simulate user having used all free trial generations
+    async def set_trial_count_used():
         async with AsyncSessionLocal() as session:
             res = await session.execute(select(User).where(User.id == user_id))
             u = res.scalar_one()
-            u.trial_count = 5
+            u.trial_count = settings.FREE_TRIAL_GENERATIONS
             await session.commit()
-    asyncio.run(set_trial_count_5())
+    asyncio.run(set_trial_count_used())
 
     # 3. 6th order now requires payment
     files_6 = {

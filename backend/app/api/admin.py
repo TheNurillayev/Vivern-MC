@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func, case
 from backend.app.core.database import get_db
 from backend.app.core.config import settings
 from backend.app.api.auth import get_admin_user
@@ -234,6 +234,71 @@ async def retry_order(
     order.error_message = ""
     await db.commit()
     return {"success": True, "message": f"Order {order_id} re-queued successfully"}
+
+@router.get("/users")
+async def list_admin_users(
+    query: Optional[str] = None,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """List registered users with order counts, trials, and real-time search."""
+    stmt = (
+        select(
+            User,
+            func.count(Order.id).label("total_orders"),
+            func.count(case((Order.status == "completed", 1))).label("completed_orders")
+        )
+        .outerjoin(Order, Order.user_id == User.id)
+        .group_by(User.id)
+        .order_by(User.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    users_list = []
+    q = query.lower().strip() if query else None
+
+    for user, total_orders, completed_orders in rows:
+        fn = (user.first_name or "").lower()
+        ln = (user.last_name or "").lower()
+        un = (user.username or "").lower()
+        uid_str = str(user.id)
+
+        if q:
+            clean_q = q.replace("@", "")
+            if (q not in fn and q not in ln and q not in un 
+                and q not in uid_str and clean_q not in un):
+                continue
+
+        users_list.append({
+            "id": user.id,
+            "first_name": user.first_name or "",
+            "last_name": user.last_name or "",
+            "username": user.username or "",
+            "language_code": user.language_code or "uz",
+            "trial_count": user.trial_count or 0,
+            "is_admin": bool(user.is_admin or (user.id in settings.admin_ids)),
+            "created_at": user.created_at.strftime("%Y-%m-%d %H:%M") if user.created_at else None,
+            "total_orders": total_orders or 0,
+            "completed_orders": completed_orders or 0
+        })
+
+    return users_list
+
+@router.patch("/users/{user_id}/reset-trials")
+async def reset_user_trials(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Admin trial reset / grant 3 free generations."""
+    res = await db.execute(select(User).where(User.id == user_id))
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+    user.trial_count = 0
+    await db.commit()
+    return {"success": True, "user_id": user_id, "trial_count": 0}
 
 @router.get("/costs/summary")
 async def get_cost_summary(

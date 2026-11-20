@@ -59,13 +59,13 @@
       nameEl.textContent = currentUser.first_name || "Foydalanuvchi";
     }
 
-    const remaining = Math.max(0, 5 - (currentUser.trial_count || 0));
+    const remaining = Math.max(0, 3 - (currentUser.trial_count || 0));
     if (trialEl) {
       trialEl.textContent = remaining > 0 ? `${remaining} ta bepul` : "5,000 so'm";
     }
 
     if (orderPriceEl) {
-      orderPriceEl.textContent = remaining > 0 ? `Bepul (${remaining}/5 ta qoldi)` : "5,000 so'm";
+      orderPriceEl.textContent = remaining > 0 ? `Bepul (${remaining}/3 ta qoldi)` : "5,000 so'm";
     }
 
     if (currentUser.is_admin && adminTab) {
@@ -75,13 +75,11 @@
     // Populate Account Page details
     const accName = document.getElementById("acc-name");
     const accUsername = document.getElementById("acc-username");
-    const accIdBadge = document.getElementById("acc-id-badge");
     const accTrial = document.getElementById("acc-trial-status");
     const fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() || "Foydalanuvchi";
     if (accName) accName.textContent = fullName;
-    if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : `ID: ${currentUser.id}`;
-    if (accIdBadge) accIdBadge.textContent = `Telegram ID: ${currentUser.id}`;
-    if (accTrial) accTrial.textContent = remaining > 0 ? `${remaining} ta bepul (5 tadan)` : "Tugagan (Pullik rejim)";
+    if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : "";
+    if (accTrial) accTrial.textContent = remaining > 0 ? `${remaining} ta bepul (3 tadan)` : "Tugagan (Pullik rejim)";
   }
 
   window.switchTab = function (tabId) {

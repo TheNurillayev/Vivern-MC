@@ -7,6 +7,75 @@
   <link rel="stylesheet" href="/static/css/app.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    /* Admin Navigation Buttons - Horizontal Cards stacked vertically */
+    .admin-nav-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .admin-nav-card {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .admin-nav-card:hover {
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
+    }
+    .admin-nav-card.active {
+      border-color: var(--accent-gold);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(139, 92, 246, 0.12));
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+    }
+    .admin-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .admin-nav-icon {
+      font-size: 1.6rem;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .admin-nav-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-main);
+    }
+    .admin-nav-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+    .admin-nav-arrow {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+      font-weight: bold;
+    }
+    .admin-nav-card.active .admin-nav-arrow {
+      color: var(--accent-gold);
+      transform: translateX(3px);
+    }
+
+    /* Category & Track items */
     .category-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -65,6 +134,10 @@
       cursor: pointer;
       border: none;
       font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn-sm:hover {
+      opacity: 0.9;
     }
     .btn-activate {
       background: var(--accent-blue);
@@ -74,6 +147,112 @@
       background: rgba(239, 68, 68, 0.2);
       color: var(--danger-color);
     }
+
+    /* User Management Search and Cards */
+    .user-search-wrapper {
+      position: relative;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+    }
+    .user-search-icon {
+      position: absolute;
+      left: 14px;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .user-search-input {
+      width: 100%;
+      padding: 12px 38px 12px 42px;
+      border-radius: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .user-search-input:focus {
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+    }
+    .user-search-clear {
+      position: absolute;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: var(--text-muted);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+
+    .user-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+    .user-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .user-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .user-profile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .user-meta-cell {
+      display: flex;
+      flex-direction: column;
+    }
+    .user-meta-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .user-meta-val {
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
@@ -82,7 +261,7 @@
       <div class="brand-icon">⚙️</div>
       <div>
         <div class="brand-title">ADMIN PANEL</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted);">Musiqa Kutubxonasi Boshqaruvi</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);" id="admin-subtitle">Boshqaruv Markazi</div>
       </div>
     </div>
     <a href="/index.html" class="badge-tag" style="text-decoration:none; background: rgba(255,255,255,0.1); color: var(--text-main);">
@@ -103,13 +282,70 @@
     <!-- Admin Content Area -->
     <div id="admin-content" class="hidden">
       <div id="admin-toast" class="card hidden" style="margin-bottom: 14px; font-weight: 500; font-size: 0.9rem;"></div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-size: 1.1rem; font-weight: 600;">4 Ta Musiqa Toifasi</h3>
-        <button onclick="loadCategories()" class="btn-sm btn-secondary" style="width: auto;">🔄 Yangilash</button>
+
+      <!-- Two Primary Horizontal Admin Navigation Buttons (1 on top, 2 directly below it) -->
+      <div class="admin-nav-cards">
+        <button id="admin-btn-library" class="admin-nav-card active" onclick="switchAdminSection('library')">
+          <div class="admin-nav-left">
+            <span class="admin-nav-icon">🎵</span>
+            <div>
+              <div class="admin-nav-title">Musiqalar Kutubxonasi</div>
+              <div class="admin-nav-desc">4 ta toifa, fon musiqalari va ohanglar</div>
+            </div>
+          </div>
+          <span class="admin-nav-arrow">➔</span>
+        </button>
+
+        <button id="admin-btn-users" class="admin-nav-card" onclick="switchAdminSection('users')">
+          <div class="admin-nav-left">
+            <span class="admin-nav-icon">👥</span>
+            <div>
+              <div class="admin-nav-title">Foydalanuvchilar Boshqaruvi</div>
+              <div class="admin-nav-desc">Bot foydalanuvchilari, urinishlar va buyurtmalar</div>
+            </div>
+          </div>
+          <span class="admin-nav-arrow">➔</span>
+        </button>
       </div>
 
-      <div id="categories-container">
-        <!-- Rendered by JS -->
+      <!-- SECTION 1: Musiqalar Kutubxonasi -->
+      <div id="section-library">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 1.1rem; font-weight: 600;">4 Ta Musiqa Toifasi</h3>
+          <button onclick="loadCategories()" class="btn-sm btn-secondary" style="width: auto;">🔄 Yangilash</button>
+        </div>
+
+        <div id="categories-container">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- SECTION 2: Foydalanuvchilar Boshqaruvi -->
+      <div id="section-users" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 600;">Foydalanuvchilar Ro'yxati</h3>
+            <div id="users-count-label" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Yuklanmoqda...</div>
+          </div>
+          <button onclick="loadUsers()" class="btn-sm btn-secondary" style="width: auto;">🔄 Yangilash</button>
+        </div>
+
+        <!-- Search Bar with Search Icon -->
+        <div class="user-search-wrapper">
+          <span class="user-search-icon">🔍</span>
+          <input 
+            type="text" 
+            id="user-search-input" 
+            class="user-search-input" 
+            placeholder="Ism, @username yoki Telegram ID bo'yicha qidirish..." 
+            oninput="handleUserSearch(event)"
+          />
+          <button id="btn-clear-search" class="user-search-clear hidden" onclick="clearUserSearch()">✕</button>
+        </div>
+
+        <div id="users-list-container">
+          <!-- Rendered by JS -->
+        </div>
       </div>
     </div>
   </main>
@@ -121,6 +357,8 @@
     const tg = window.Telegram?.WebApp;
     let selectedCategoryId = null;
     let token = sessionStorage.getItem("vivern_token");
+    let allUsersCache = [];
+    let searchDebounceTimer = null;
 
     async function initAdmin() {
       if (tg) {
@@ -153,9 +391,34 @@
       }
     }
 
+    // Switch between Musiqalar Kutubxonasi and Foydalanuvchilar Boshqaruvi
+    function switchAdminSection(section) {
+      const btnLib = document.getElementById("admin-btn-library");
+      const btnUsers = document.getElementById("admin-btn-users");
+      const secLib = document.getElementById("section-library");
+      const secUsers = document.getElementById("section-users");
+
+      if (section === "library") {
+        btnLib.classList.add("active");
+        btnUsers.classList.remove("active");
+        secLib.classList.remove("hidden");
+        secUsers.classList.add("hidden");
+        loadCategories();
+      } else {
+        btnUsers.classList.add("active");
+        btnLib.classList.remove("active");
+        secUsers.classList.remove("hidden");
+        secLib.classList.add("hidden");
+        loadUsers();
+      }
+    }
+
+    /* -------------------------------------------------------------
+       SECTION 1: Musiqalar Kutubxonasi Functions
+       ------------------------------------------------------------- */
     async function loadCategories() {
       const container = document.getElementById("categories-container");
-      container.innerHTML = '<div style="text-align:center; padding: 20px;" class="spinner"></div>';
+      container.innerHTML = '<div style="text-align:center; padding: 25px;"><div class="spinner"></div><div style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">Kutubxona yuklanmoqda...</div></div>';
 
       try {
         const res = await fetch("/api/admin/categories", {
@@ -331,6 +594,144 @@
         loadCategories();
       } catch (err) {
         alert(err.message);
+      }
+    }
+
+    /* -------------------------------------------------------------
+       SECTION 2: Foydalanuvchilar Boshqaruvi Functions
+       ------------------------------------------------------------- */
+    async function loadUsers(searchQuery = "") {
+      const container = document.getElementById("users-list-container");
+      const countLabel = document.getElementById("users-count-label");
+      container.innerHTML = '<div style="text-align:center; padding: 25px;"><div class="spinner"></div><div style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">Foydalanuvchilar yuklanmoqda...</div></div>';
+
+      try {
+        let url = "/api/admin/users";
+        if (searchQuery.trim()) {
+          url += `?query=${encodeURIComponent(searchQuery.trim())}`;
+        }
+        const res = await fetch(url, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Foydalanuvchilarni yuklab bo'lmadi");
+        const users = await res.json();
+        allUsersCache = users;
+
+        countLabel.textContent = `Jami: ${users.length} ta foydalanuvchi topildi`;
+        renderUsersList(users);
+      } catch (err) {
+        container.innerHTML = `<div style="color:var(--danger-color); padding:10px;">Xatolik: ${err.message}</div>`;
+      }
+    }
+
+    function renderUsersList(users) {
+      const container = document.getElementById("users-list-container");
+      if (!users || users.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 35px 20px; color: var(--text-muted);">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">🔍</div>
+            <div style="font-weight: 600;">Hech qanday foydalanuvchi topilmadi</div>
+            <div style="font-size: 0.8rem; margin-top: 4px;">Qidiruv so'zini o'zgartirib ko'ring</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = users.map(u => {
+        const fullName = `${u.first_name || ""} ${u.last_name || ""}`.trim() || "Noma'lum foydalanuvchi";
+        const initial = (u.first_name || u.username || "U")[0].toUpperCase();
+        const usernameDisplay = u.username ? `@${u.username}` : "<span style='color:var(--text-muted)'>username yo'q</span>";
+        
+        // Trial calculation out of 3
+        const used = u.trial_count || 0;
+        const remaining = Math.max(0, 3 - used);
+        let trialBadge = `<span style="color:var(--accent-emerald); font-weight:700;">${remaining} ta bepul qoldi</span> (${used}/3 ishlatilgan)`;
+        if (remaining === 0) {
+          trialBadge = `<span style="color:var(--danger-color); font-weight:700;">Tugagan</span> (${used} ta ishlatilgan)`;
+        }
+
+        const roleBadge = u.is_admin 
+          ? `<span style="background:var(--accent-gold); color:#78350f; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:8px;">ADMIN</span>`
+          : `<span style="background:rgba(255,255,255,0.08); color:var(--text-muted); font-size:0.7rem; padding:2px 8px; border-radius:8px;">FOYDALANUVCHI</span>`;
+
+        return `
+          <div class="user-card">
+            <div class="user-card-top">
+              <div class="user-profile-header">
+                <div class="user-avatar">${initial}</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.98rem;">${fullName}</div>
+                  <div style="font-size: 0.82rem; margin-top: 1px;">${usernameDisplay}</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">ID: <code>${u.id}</code></div>
+                </div>
+              </div>
+              <div>${roleBadge}</div>
+            </div>
+
+            <div class="user-meta-grid">
+              <div class="user-meta-cell">
+                <span class="user-meta-label">💳 Bepul Urinishlar</span>
+                <span class="user-meta-val" style="font-size:0.8rem;">${trialBadge}</span>
+              </div>
+              <div class="user-meta-cell">
+                <span class="user-meta-label">📦 Buyurtmalari</span>
+                <span class="user-meta-val">Jami: ${u.total_orders} ta (${u.completed_orders} tayyor)</span>
+              </div>
+              <div class="user-meta-cell">
+                <span class="user-meta-label">📅 Qo'shilgan sana</span>
+                <span class="user-meta-val" style="font-size:0.78rem; font-weight:500;">${u.created_at || "Noma'lum"}</span>
+              </div>
+              <div class="user-meta-cell">
+                <span class="user-meta-label">🌐 Til sozlamasi</span>
+                <span class="user-meta-val" style="font-size:0.78rem; text-transform:uppercase;">${u.language_code || "UZ"}</span>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:2px;">
+              <button onclick="resetUserTrials(${u.id}, '${fullName.replace(/'/g, "\\'")}')" class="btn-sm btn-secondary" style="font-size:0.76rem; padding:6px 10px;">
+                🔄 3 ta bepul urinish berish
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function handleUserSearch(event) {
+      const q = event.target.value;
+      const clearBtn = document.getElementById("btn-clear-search");
+      if (q.trim()) {
+        clearBtn.classList.remove("hidden");
+      } else {
+        clearBtn.classList.add("hidden");
+      }
+
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        loadUsers(q);
+      }, 250);
+    }
+
+    function clearUserSearch() {
+      const input = document.getElementById("user-search-input");
+      input.value = "";
+      document.getElementById("btn-clear-search").classList.add("hidden");
+      loadUsers("");
+    }
+
+    async function resetUserTrials(userId, userName) {
+      if (!confirm(`${userName} uchun bepul urinishlar sonini qaytadan 3 taga yangilamoqchimisiz?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/users/${userId}/reset-trials`, {
+          method: "PATCH",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Urinishlarni yangilab bo'lmadi");
+        showAdminNotification(`✅ ${userName} uchun 3 ta bepul urinish berildi!`, "success");
+        loadUsers(document.getElementById("user-search-input").value);
+      } catch (err) {
+        showAdminNotification("❌ Xatolik: " + err.message, "error");
       }
     }
 
