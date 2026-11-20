@@ -9,14 +9,56 @@ from aiogram.types import (
     FSInputFile
 )
 from backend.app.core.config import settings
+from backend.app.core.database import AsyncSessionLocal
+from backend.app.models.user import User
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
 bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
 dp = Dispatcher()
 
+async def register_or_update_telegram_user(tg_user: types.User):
+    """Permanently persist any Telegram user who interacts with the bot into the database."""
+    if not tg_user:
+        return
+    try:
+        async with AsyncSessionLocal() as session:
+            res = await session.execute(select(User).where(User.id == tg_user.id))
+            user = res.scalar_one_or_none()
+            is_admin = tg_user.id in settings.admin_ids
+            if not user:
+                user = User(
+                    id=tg_user.id,
+                    first_name=tg_user.first_name or "",
+                    last_name=tg_user.last_name or "",
+                    username=tg_user.username or "",
+                    language_code="uz",
+                    trial_count=0,
+                    is_admin=is_admin
+                )
+                session.add(user)
+                logger.info(f"Registered new Telegram user {tg_user.id} ({tg_user.first_name}) in database.")
+            else:
+                user.first_name = tg_user.first_name or ""
+                user.last_name = tg_user.last_name or ""
+                if tg_user.username:
+                    user.username = tg_user.username
+                user.is_admin = is_admin
+            await session.commit()
+    except Exception as e:
+        logger.error(f"Error persisting user {tg_user.id}: {e}")
+
+@dp.message.outer_middleware()
+async def user_tracking_middleware(handler, event: types.Message, data):
+    if event.from_user:
+        await register_or_update_telegram_user(event.from_user)
+    return await handler(event, data)
+
 @dp.message(CommandStart())
 async def handle_start(message: types.Message):
+    if message.from_user:
+        await register_or_update_telegram_user(message.from_user)
     user_id = message.from_user.id
     first_name = message.from_user.first_name or "Foydalanuvchi"
     is_admin = user_id in settings.admin_ids

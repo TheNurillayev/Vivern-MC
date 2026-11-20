@@ -487,11 +487,10 @@
   <!-- Full-Screen Profile Modal View (Covers Entire Screen) -->
   <div id="fullscreen-user-profile" class="fullscreen-profile-modal hidden">
     <div class="fullscreen-modal-header">
-      <button class="btn btn-secondary" onclick="closeUserProfileModal()" style="display:flex; align-items:center; gap:6px; padding:8px 14px; font-size:0.88rem; border-radius:10px;">
-        <span>←</span> Orqaga
+      <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main);">Foydalanuvchi profili</div>
+      <button onclick="closeUserProfileModal()" class="btn-sm" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; font-weight: 600; padding: 6px 14px; border-radius: 8px; cursor: pointer;">
+        ✕ Yopish
       </button>
-      <div style="font-weight: 700; font-size: 1.05rem;">Foydalanuvchi Profili</div>
-      <button onclick="closeUserProfileModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.3rem; cursor:pointer; padding:4px 8px;">✕</button>
     </div>
 
     <div class="user-profile-hero">
@@ -507,23 +506,19 @@
     <div class="user-meta-stats-grid">
       <div class="meta-stat-cell">
         <span class="meta-stat-label">💳 Bepul Sinovlar</span>
-        <span class="meta-stat-value" id="fp-trials" style="color:var(--accent-emerald);">3 ta mavjud</span>
+        <span class="meta-stat-value" id="fp-trials" style="color:var(--accent-emerald);">3 ta bepul qoldi</span>
       </div>
       <div class="meta-stat-cell">
-        <span class="meta-stat-label">📦 Jami Buyurtmalar</span>
-        <span class="meta-stat-value" id="fp-total-orders">0 ta</span>
-      </div>
-      <div class="meta-stat-cell">
-        <span class="meta-stat-label">✅ Tayyorlangan</span>
+        <span class="meta-stat-label">📦 Tayyorlangan Buyurtmalar</span>
         <span class="meta-stat-value" id="fp-completed-orders" style="color:var(--accent-gold);">0 ta</span>
+      </div>
+      <div class="meta-stat-cell">
+        <span class="meta-stat-label">📅 Ro'yxatdan O'tgan Sana</span>
+        <span class="meta-stat-value" id="fp-created-at" style="font-size:0.85rem; font-weight:500;">...</span>
       </div>
       <div class="meta-stat-cell">
         <span class="meta-stat-label">🌐 Tanlangan Til</span>
         <span class="meta-stat-value" id="fp-language">UZ</span>
-      </div>
-      <div class="meta-stat-cell" style="grid-column: span 2;">
-        <span class="meta-stat-label">📅 Ro'yxatdan O'tgan Sana</span>
-        <span class="meta-stat-value" id="fp-created-at" style="font-size:0.85rem; font-weight:500;">...</span>
       </div>
     </div>
 
@@ -940,10 +935,12 @@
         trialsEl.style.color = "var(--danger-color)";
       }
 
-      document.getElementById("fp-total-orders").textContent = `${user.total_orders || 0} ta`;
-      document.getElementById("fp-completed-orders").textContent = `${user.completed_orders || 0} ta`;
-      document.getElementById("fp-language").textContent = (user.language_code || "UZ").toUpperCase();
-      document.getElementById("fp-created-at").textContent = user.created_at || "Noma'lum";
+      const compOrdersEl = document.getElementById("fp-completed-orders");
+      if (compOrdersEl) compOrdersEl.textContent = `${user.completed_orders || 0} ta`;
+      const langEl = document.getElementById("fp-language");
+      if (langEl) langEl.textContent = "UZ";
+      const createdEl = document.getElementById("fp-created-at");
+      if (createdEl) createdEl.textContent = user.created_at || "Noma'lum";
 
       modal.classList.remove("hidden");
       document.body.style.overflow = "hidden"; // Prevent background scroll
