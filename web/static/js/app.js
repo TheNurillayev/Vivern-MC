@@ -172,17 +172,165 @@
     }
   };
 
-  // Timing settings toggle
-  window.toggleTimingSettings = function () {
-    const el = document.getElementById("timing-inputs");
-    const chevron = document.getElementById("timing-chevron");
+  // Extra settings & tabs controls
+  let currentBgPreviewAudio = null;
+  let currentPlayingCategory = null;
+  let libraryOptionsLoaded = false;
+
+  window.toggleExtraSettings = function () {
+    const el = document.getElementById("extra-settings-content");
+    const chevron = document.getElementById("extra-settings-chevron");
     if (!el) return;
     if (el.classList.contains("hidden")) {
       el.classList.remove("hidden");
       if (chevron) chevron.textContent = "(Ixtiyoriy) ▲";
+      if (!libraryOptionsLoaded) {
+        loadLibraryMusicOptions();
+      }
     } else {
       el.classList.add("hidden");
       if (chevron) chevron.textContent = "(Ixtiyoriy) ▼";
+      if (currentBgPreviewAudio) {
+        currentBgPreviewAudio.pause();
+        currentPlayingCategory = null;
+        document.querySelectorAll("[id^='btn-preview-']").forEach(b => b.textContent = "▶️");
+      }
+    }
+  };
+  window.toggleTimingSettings = window.toggleExtraSettings;
+
+  window.switchExtraTab = function (tabName) {
+    const btnTiming = document.getElementById("tab-btn-timing");
+    const btnBg = document.getElementById("tab-btn-bgmusic");
+    const subTiming = document.getElementById("subtab-timing");
+    const subBg = document.getElementById("subtab-bgmusic");
+
+    if (tabName === "timing") {
+      if (btnTiming) {
+        btnTiming.style.background = "var(--accent-purple)";
+        btnTiming.style.color = "#fff";
+      }
+      if (btnBg) {
+        btnBg.style.background = "transparent";
+        btnBg.style.color = "var(--text-muted)";
+      }
+      if (subTiming) subTiming.classList.remove("hidden");
+      if (subBg) subBg.classList.add("hidden");
+      if (currentBgPreviewAudio) {
+        currentBgPreviewAudio.pause();
+        currentPlayingCategory = null;
+        document.querySelectorAll("[id^='btn-preview-']").forEach(b => b.textContent = "▶️");
+      }
+    } else {
+      if (btnBg) {
+        btnBg.style.background = "var(--accent-purple)";
+        btnBg.style.color = "#fff";
+      }
+      if (btnTiming) {
+        btnTiming.style.background = "transparent";
+        btnTiming.style.color = "var(--text-muted)";
+      }
+      if (subBg) subBg.classList.remove("hidden");
+      if (subTiming) subTiming.classList.add("hidden");
+      const origAudio = document.getElementById("audio-preview-original");
+      if (origAudio) origAudio.pause();
+      if (!libraryOptionsLoaded) {
+        loadLibraryMusicOptions();
+      }
+    }
+  };
+
+  async function loadLibraryMusicOptions() {
+    try {
+      const res = await fetch("/api/orders/library-options");
+      if (!res.ok) return;
+      const data = await res.json();
+      libraryOptionsLoaded = true;
+
+      populateBgSelect("select-starter-music", data.starter || []);
+      populateBgSelect("select-wishes-music", data.wishes || []);
+      populateBgSelect("select-ending-music", data.call_ending || []);
+    } catch (e) {
+      console.warn("Could not load library options:", e);
+    }
+  }
+
+  function populateBgSelect(selectId, tracks) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    select.innerHTML = "";
+    if (!tracks || tracks.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Standart musiqa";
+      select.appendChild(opt);
+      return;
+    }
+    tracks.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      const durMin = Math.floor((t.duration_seconds || 0) / 60);
+      const durSec = Math.floor((t.duration_seconds || 0) % 60);
+      const durStr = `${durMin}:${durSec < 10 ? "0" : ""}${durSec}`;
+      opt.textContent = `${t.title} (${durStr})${t.is_active ? " ⭐ (Asosiy)" : ""}`;
+      if (t.is_active) opt.selected = true;
+      opt.dataset.previewUrl = t.preview_url;
+      select.appendChild(opt);
+    });
+  }
+
+  window.togglePlayBgPreview = function (category) {
+    const selectId = category === "starter" ? "select-starter-music" : (category === "wishes" ? "select-wishes-music" : "select-ending-music");
+    const btnId = `btn-preview-${category}`;
+    const select = document.getElementById(selectId);
+    const btn = document.getElementById(btnId);
+    if (!select || !btn) return;
+
+    const selectedOpt = select.options[select.selectedIndex];
+    const previewUrl = selectedOpt?.dataset?.previewUrl;
+    if (!previewUrl) return;
+
+    if (currentBgPreviewAudio && currentPlayingCategory === category && !currentBgPreviewAudio.paused) {
+      currentBgPreviewAudio.pause();
+      btn.textContent = "▶️";
+      currentPlayingCategory = null;
+      return;
+    }
+
+    if (currentBgPreviewAudio) {
+      currentBgPreviewAudio.pause();
+      document.querySelectorAll("[id^='btn-preview-']").forEach(b => b.textContent = "▶️");
+    }
+
+    const origAudio = document.getElementById("audio-preview-original");
+    if (origAudio) origAudio.pause();
+
+    currentBgPreviewAudio = new Audio(previewUrl);
+    currentPlayingCategory = category;
+    btn.textContent = "⏸️";
+
+    currentBgPreviewAudio.play().catch(e => {
+      console.warn("Audio play error:", e);
+      btn.textContent = "▶️";
+      currentPlayingCategory = null;
+    });
+
+    currentBgPreviewAudio.onended = function () {
+      btn.textContent = "▶️";
+      currentPlayingCategory = null;
+    };
+
+    currentBgPreviewAudio.onpause = function () {
+      btn.textContent = "▶️";
+    };
+  };
+
+  window.onBgMusicSelectChange = function (category) {
+    if (currentPlayingCategory === category && currentBgPreviewAudio) {
+      currentBgPreviewAudio.pause();
+      currentPlayingCategory = null;
+      const btn = document.getElementById(`btn-preview-${category}`);
+      if (btn) btn.textContent = "▶️";
     }
   };
 
@@ -253,6 +401,20 @@
     const wEnd = parseTimeStringToSeconds(wEndInput);
     if (wStart !== null) formData.append("custom_wishes_start_seconds", wStart);
     if (wEnd !== null) formData.append("custom_call_ending_seconds", wEnd);
+
+    // Optional custom background tracks
+    const starterTrack = document.getElementById("select-starter-music")?.value;
+    const wishesTrack = document.getElementById("select-wishes-music")?.value;
+    const endingTrack = document.getElementById("select-ending-music")?.value;
+    if (starterTrack) formData.append("custom_starter_track_id", starterTrack);
+    if (wishesTrack) formData.append("custom_wishes_track_id", wishesTrack);
+    if (endingTrack) formData.append("custom_ending_track_id", endingTrack);
+
+    if (currentBgPreviewAudio) {
+      currentBgPreviewAudio.pause();
+      currentPlayingCategory = null;
+      document.querySelectorAll("[id^='btn-preview-']").forEach(b => b.textContent = "▶️");
+    }
 
     try {
       const res = await fetch("/api/orders/create", {
@@ -407,5 +569,6 @@
   document.addEventListener("DOMContentLoaded", () => {
     initAuth();
     setupUploadInputs();
+    loadLibraryMusicOptions();
   });
 })();

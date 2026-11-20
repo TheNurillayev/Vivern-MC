@@ -86,11 +86,35 @@ async def process_single_order(order_id: str):
             session.add(edit_decision)
             await session.commit()
 
-            # Stage 3: Resolve Admin Library Tracks
+            # Stage 3: Resolve Admin Library Tracks (Customer selection takes priority over active default)
             intro_path = await get_active_asset_path("number_call", session)
-            starter_path = await get_active_asset_path("starter", session)
-            wishes_path = await get_active_asset_path("wishes", session)
-            ending_path = await get_active_asset_path("call_ending", session)
+
+            starter_path = None
+            if order.custom_starter_track_id:
+                res_starter = await session.execute(select(LibraryAsset).where(LibraryAsset.id == order.custom_starter_track_id))
+                cust_starter = res_starter.scalar_one_or_none()
+                if cust_starter and os.path.exists(cust_starter.storage_path):
+                    starter_path = cust_starter.storage_path
+            if not starter_path:
+                starter_path = await get_active_asset_path("starter", session)
+
+            wishes_path = None
+            if order.custom_wishes_track_id:
+                res_wishes = await session.execute(select(LibraryAsset).where(LibraryAsset.id == order.custom_wishes_track_id))
+                cust_wishes = res_wishes.scalar_one_or_none()
+                if cust_wishes and os.path.exists(cust_wishes.storage_path):
+                    wishes_path = cust_wishes.storage_path
+            if not wishes_path:
+                wishes_path = await get_active_asset_path("wishes", session)
+
+            ending_path = None
+            if order.custom_ending_track_id:
+                res_ending = await session.execute(select(LibraryAsset).where(LibraryAsset.id == order.custom_ending_track_id))
+                cust_ending = res_ending.scalar_one_or_none()
+                if cust_ending and os.path.exists(cust_ending.storage_path):
+                    ending_path = cust_ending.storage_path
+            if not ending_path:
+                ending_path = await get_active_asset_path("call_ending", session)
 
             # Stage 4: Render Production
             order.status = "rendering"

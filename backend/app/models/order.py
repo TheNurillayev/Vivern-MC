@@ -23,6 +23,11 @@ class Order(Base):
     custom_wishes_start_seconds: Mapped[float] = mapped_column(Float, nullable=True)
     custom_call_ending_seconds: Mapped[float] = mapped_column(Float, nullable=True)
 
+    # Custom background library tracks (if chosen by customer)
+    custom_starter_track_id: Mapped[str] = mapped_column(String(36), nullable=True)
+    custom_wishes_track_id: Mapped[str] = mapped_column(String(36), nullable=True)
+    custom_ending_track_id: Mapped[str] = mapped_column(String(36), nullable=True)
+
     # Output file paths
     output_audio_path: Mapped[str] = mapped_column(String(512), default="")
     output_audio_duration: Mapped[float] = mapped_column(Float, default=0.0)

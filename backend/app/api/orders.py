@@ -24,6 +24,9 @@ async def create_order(
     special_music: UploadFile = File(...),
     custom_wishes_start_seconds: Optional[float] = Form(None),
     custom_call_ending_seconds: Optional[float] = Form(None),
+    custom_starter_track_id: Optional[str] = Form(None),
+    custom_wishes_track_id: Optional[str] = Form(None),
+    custom_ending_track_id: Optional[str] = Form(None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -105,6 +108,9 @@ async def create_order(
         special_music_name=special_music.filename or "special.mp3",
         custom_wishes_start_seconds=custom_wishes_start_seconds,
         custom_call_ending_seconds=custom_call_ending_seconds,
+        custom_starter_track_id=custom_starter_track_id,
+        custom_wishes_track_id=custom_wishes_track_id,
+        custom_ending_track_id=custom_ending_track_id,
         price_som=price,
         is_free_trial=is_free,
         is_paid=is_free  # Trial orders are automatically considered paid
@@ -127,6 +133,44 @@ async def get_my_orders(
     )
     orders = res.scalars().all()
     return [OrderDetailResponse.model_validate(o) for o in orders]
+
+@router.get("/library-options")
+async def get_library_options(
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns curated background music options for customers to choose and preview."""
+    from backend.app.models.library_asset import LibraryAsset
+    result = await db.execute(
+        select(LibraryAsset)
+        .where(LibraryAsset.category.in_(["starter", "wishes", "call_ending"]))
+        .order_by(LibraryAsset.category, LibraryAsset.is_active.desc(), LibraryAsset.created_at.desc())
+    )
+    assets = result.scalars().all()
+    categories = {"starter": [], "wishes": [], "call_ending": []}
+    for a in assets:
+        if a.category in categories:
+            categories[a.category].append({
+                "id": a.id,
+                "title": a.title,
+                "category": a.category,
+                "duration_seconds": a.duration_seconds,
+                "is_active": a.is_active,
+                "preview_url": f"/api/orders/library-tracks/{a.id}/preview"
+            })
+    return categories
+
+@router.get("/library-tracks/{asset_id}/preview")
+async def preview_customer_library_track(
+    asset_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Audio preview stream for background tracks in customer UI."""
+    from backend.app.models.library_asset import LibraryAsset
+    result = await db.execute(select(LibraryAsset).where(LibraryAsset.id == asset_id))
+    asset = result.scalar_one_or_none()
+    if not asset or not asset.storage_path or not os.path.exists(asset.storage_path):
+        raise HTTPException(status_code=404, detail="Audio trek topilmadi")
+    return FileResponse(asset.storage_path, media_type="audio/mpeg", filename=asset.filename)
 
 @router.get("/{order_id}", response_model=OrderDetailResponse)
 async def get_order_detail(
@@ -161,3 +205,4 @@ async def download_output_audio(
         media_type="audio/mpeg",
         filename=f"Vivern_MC_{order_id[:8]}.mp3"
     )
+

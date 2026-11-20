@@ -35,7 +35,13 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         # Safe column migrations for orders table
-        for col, col_type in [("custom_wishes_start_seconds", "FLOAT"), ("custom_call_ending_seconds", "FLOAT")]:
+        for col, col_type in [
+            ("custom_wishes_start_seconds", "FLOAT"),
+            ("custom_call_ending_seconds", "FLOAT"),
+            ("custom_starter_track_id", "VARCHAR(36)"),
+            ("custom_wishes_track_id", "VARCHAR(36)"),
+            ("custom_ending_track_id", "VARCHAR(36)")
+        ]:
             try:
                 await conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {col_type}"))
             except Exception:

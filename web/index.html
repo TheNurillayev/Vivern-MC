@@ -79,45 +79,113 @@
         </div>
       </div>
 
-      <!-- Optional Timing Customization & In-App Audio Player -->
+      <!-- Optional Extra Settings (Timing & Background Music) -->
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleTimingSettings()">
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleExtraSettings()">
           <div class="card-title" style="margin-bottom: 0;">
-            <span>⏱️</span> Tabrik vaqti sozlamalari
+            <span>⚙️</span> Qo'shimcha ma'lumotlar
           </div>
-          <span id="timing-chevron" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: 600;">(Ixtiyoriy) ▼</span>
+          <span id="extra-settings-chevron" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: 600;">(Ixtiyoriy) ▼</span>
         </div>
-        <div id="timing-inputs" class="hidden" style="margin-top: 14px;">
-          <div class="card-desc" style="margin-bottom: 12px; line-height: 1.5;">
-            Suhbatdagi tabrik va tilaklar boshlanishi hamda tugashini belgilang. Pleyerda tinglab, <b>bitta tugma</b> bilan vaqtni muhrlashingiz mumkin. Bo'sh qoldirsangiz, AI avtomatik hisoblaydi.
+        <div id="extra-settings-content" class="hidden" style="margin-top: 14px;">
+          <!-- 2 Sub-Tabs / Buttons -->
+          <div style="display: flex; gap: 8px; margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 10px; border: 1px solid var(--border-color);">
+            <button type="button" id="tab-btn-timing" class="extra-tab-btn active" onclick="switchExtraTab('timing')" style="flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; background: var(--accent-purple); color: #fff;">
+              ⏱️ Tabrik vaqti sozlamalari
+            </button>
+            <button type="button" id="tab-btn-bgmusic" class="extra-tab-btn" onclick="switchExtraTab('bgmusic')" style="flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-muted);">
+              🎶 Orqa fon musiqalari
+            </button>
           </div>
 
-          <!-- In-App Audio Player for Original Recording -->
-          <div id="player-container" class="hidden" style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 10px; margin-bottom: 14px; border: 1px solid var(--border-color);">
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between;">
-              <span>🎧 Suhbatni tinglash:</span>
-              <span id="player-time-display" style="color: var(--accent-gold); font-family: monospace; font-weight: bold;">00:00</span>
+          <!-- Section 1: Tabrik vaqti sozlamalari -->
+          <div id="subtab-timing">
+            <div class="card-desc" style="margin-bottom: 12px; line-height: 1.5;">
+              Suhbatdagi tabrik va tilaklar boshlanishi hamda tugashini belgilang. Pleyerda tinglab, <b>bitta tugma</b> bilan vaqtni muhrlashingiz mumkin. Bo'sh qoldirsangiz, AI avtomatik hisoblaydi.
             </div>
-            <audio id="audio-preview-original" controls style="width: 100%; height: 36px; border-radius: 6px; margin-bottom: 10px;"></audio>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <button type="button" class="btn" style="background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff; font-size: 0.78rem; padding: 7px 5px; cursor: pointer;" onclick="markCurrentTimeToWishesStart()">
-                📍 Tilak boshlandi
-              </button>
-              <button type="button" class="btn" style="background: rgba(147,51,234,0.25); border: 1px solid var(--accent-purple); color: #fff; font-size: 0.78rem; padding: 7px 5px; cursor: pointer;" onclick="markCurrentTimeToWishesEnd()">
-                📍 Tilak tugadi
-              </button>
+
+            <!-- In-App Audio Player for Original Recording -->
+            <div id="player-container" class="hidden" style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 10px; margin-bottom: 14px; border: 1px solid var(--border-color);">
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between;">
+                <span>🎧 Suhbatni tinglash:</span>
+                <span id="player-time-display" style="color: var(--accent-gold); font-family: monospace; font-weight: bold;">00:00</span>
+              </div>
+              <audio id="audio-preview-original" controls style="width: 100%; height: 36px; border-radius: 6px; margin-bottom: 10px;"></audio>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button type="button" class="btn" style="background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff; font-size: 0.78rem; padding: 7px 5px; cursor: pointer;" onclick="markCurrentTimeToWishesStart()">
+                  📍 Tilak boshlandi
+                </button>
+                <button type="button" class="btn" style="background: rgba(147,51,234,0.25); border: 1px solid var(--accent-purple); color: #fff; font-size: 0.78rem; padding: 7px 5px; cursor: pointer;" onclick="markCurrentTimeToWishesEnd()">
+                  📍 Tilak tugadi
+                </button>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Tilaklar boshlanishi:</label>
+                <input type="text" id="input-wishes-start" placeholder="Masalan: 02:54" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.85rem; font-family: monospace;">
+              </div>
+              <div>
+                <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Tilaklar yakunlanishi:</label>
+                <input type="text" id="input-wishes-end" placeholder="Masalan: 05:39" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.85rem; font-family: monospace;">
+              </div>
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div>
-              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Tilaklar boshlanishi:</label>
-              <input type="text" id="input-wishes-start" placeholder="Masalan: 02:54" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.85rem; font-family: monospace;">
+          <!-- Section 2: Orqa fon musiqalari -->
+          <div id="subtab-bgmusic" class="hidden">
+            <div class="card-desc" style="margin-bottom: 12px; line-height: 1.5;">
+              Suhbat davomida orqa fonda yangraydigan musiqalarni tanlashingiz va eshitib ko'rishingiz mumkin:
             </div>
-            <div>
-              <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Tilaklar yakunlanishi:</label>
-              <input type="text" id="input-wishes-end" placeholder="Masalan: 05:39" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.85rem; font-family: monospace;">
+
+            <!-- Starter Music -->
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08);">
+              <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>1. Kirish suhbati musiqasi</span>
+                <span style="color: var(--accent-gold); font-size: 0.72rem;">(Starter)</span>
+              </label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="select-starter-music" style="flex: 1; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem;" onchange="onBgMusicSelectChange('starter')">
+                  <option value="">Standart musiqa</option>
+                </select>
+                <button type="button" id="btn-preview-starter" class="btn" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff;" onclick="togglePlayBgPreview('starter')">
+                  ▶️
+                </button>
+              </div>
+            </div>
+
+            <!-- Wishes Music -->
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.08);">
+              <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>2. Tabrik va tilaklar musiqasi</span>
+                <span style="color: var(--accent-gold); font-size: 0.72rem;">(Wishes)</span>
+              </label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="select-wishes-music" style="flex: 1; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem;" onchange="onBgMusicSelectChange('wishes')">
+                  <option value="">Standart musiqa</option>
+                </select>
+                <button type="button" id="btn-preview-wishes" class="btn" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff;" onclick="togglePlayBgPreview('wishes')">
+                  ▶️
+                </button>
+              </div>
+            </div>
+
+            <!-- Ending Music -->
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.08);">
+              <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>3. Yakunlash suhbati musiqasi</span>
+                <span style="color: var(--accent-gold); font-size: 0.72rem;">(Ending)</span>
+              </label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="select-ending-music" style="flex: 1; padding: 8px 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; font-size: 0.82rem;" onchange="onBgMusicSelectChange('ending')">
+                  <option value="">Standart musiqa</option>
+                </select>
+                <button type="button" id="btn-preview-ending" class="btn" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(255,215,0,0.15); border: 1px solid var(--accent-gold); color: #fff;" onclick="togglePlayBgPreview('ending')">
+                  ▶️
+                </button>
+              </div>
             </div>
           </div>
         </div>
