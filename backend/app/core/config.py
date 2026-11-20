@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "vivern_mc_default_secret_key"
 
     @property
+    def BASE_DIR(self) -> Path:
+        return BASE_DIR
+
+    @property
     def admin_ids(self) -> Set[int]:
         ids: Set[int] = set()
         for item in self.ADMIN_TELEGRAM_IDS.split(","):
@@ -47,11 +51,29 @@ class Settings(BaseSettings):
 
     @property
     def storage_path(self) -> Path:
-        p = BASE_DIR / self.STORAGE_DIR
+        raw_storage = os.getenv("STORAGE_DIR", self.STORAGE_DIR)
+        p = Path(raw_storage)
+        if not p.is_absolute():
+            p = BASE_DIR / raw_storage
         p.mkdir(parents=True, exist_ok=True)
         (p / "library").mkdir(exist_ok=True)
         (p / "uploads").mkdir(exist_ok=True)
         (p / "outputs").mkdir(exist_ok=True)
         return p
+
+    @property
+    def resolved_database_url(self) -> str:
+        url = os.getenv("DATABASE_URL", self.DATABASE_URL)
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        if url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if url.startswith("sqlite"):
+            raw = url.replace("sqlite+aiosqlite:///", "").replace("sqlite:///", "")
+            if not Path(raw).is_absolute():
+                db_name = Path(raw).name or "vivern.db"
+                db_file = self.storage_path / db_name
+                return f"sqlite+aiosqlite:///{db_file.as_posix()}"
+        return url
 
 settings = Settings()

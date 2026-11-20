@@ -6,10 +6,10 @@ class Base(DeclarativeBase):
     pass
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.resolved_database_url,
     echo=False,
     future=True,
-    connect_args={"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+    connect_args={"check_same_thread": False} if settings.resolved_database_url.startswith("sqlite") else {}
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -49,15 +49,33 @@ async def init_db():
     await seed_default_library_assets()
 
 async def seed_default_library_assets():
+    import shutil
     from backend.app.models.library_asset import LibraryAsset
     from backend.app.services.audio.validator import validate_audio_file
     from sqlalchemy import select, func
+
+    lib_dir = settings.storage_path / "library"
+    lib_dir.mkdir(parents=True, exist_ok=True)
+
+    # Sync any bundled library audio files into storage_path/library if missing
+    candidate_sources = [
+        settings.BASE_DIR / "default_assets" / "library",
+        settings.BASE_DIR / "storage" / "library",
+    ]
+    for c_dir in candidate_sources:
+        if c_dir.exists() and c_dir.resolve() != lib_dir.resolve():
+            for src_file in c_dir.glob("*.*"):
+                dest_file = lib_dir / src_file.name
+                if not dest_file.exists():
+                    try:
+                        shutil.copy2(src_file, dest_file)
+                    except Exception:
+                        pass
 
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(func.count(LibraryAsset.id)))
         count = result.scalar_one()
         if count == 0:
-            lib_dir = settings.storage_path / "library"
             defaults = [
                 ("number_call", "Number & Call (starter).m4a", "number_call_v11_0f3022e4.m4a"),
                 ("starter", "Kiss the Rain.mp3", "starter_v11_ba3471ac.mp3"),

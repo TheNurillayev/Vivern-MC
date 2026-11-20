@@ -20,9 +20,10 @@ COPY web /app/web
 COPY run_server.py /app/run_server.py
 COPY .env.example /app/.env.example
 COPY storage/library /app/storage/library
+COPY storage/library /app/default_assets/library
 
 # Create storage directories
-RUN mkdir -p /app/storage/library /app/storage/uploads /app/storage/outputs
+RUN mkdir -p /app/storage/library /app/storage/uploads /app/storage/outputs /app/default_assets/library
 
 # Expose port
 EXPOSE 8000
