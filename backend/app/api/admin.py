@@ -196,12 +196,15 @@ async def preview_asset(
 @router.get("/orders")
 async def list_all_orders(
     status: Optional[str] = None,
+    user_id: Optional[int] = None,
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db)
 ):
     query = select(Order).order_by(Order.created_at.desc())
     if status:
         query = query.where(Order.status == status)
+    if user_id:
+        query = query.where(Order.user_id == user_id)
     res = await db.execute(query)
     orders = res.scalars().all()
     return [
@@ -213,8 +216,8 @@ async def list_all_orders(
             "special_music_name": o.special_music_name,
             "duration": o.output_audio_duration,
             "error_message": o.error_message,
-            "created_at": o.created_at,
-            "completed_at": o.completed_at
+            "created_at": o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else None,
+            "completed_at": o.completed_at.strftime("%Y-%m-%d %H:%M") if o.completed_at else None
         }
         for o in orders
     ]
