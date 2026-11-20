@@ -147,6 +147,15 @@
       background: rgba(239, 68, 68, 0.2);
       color: var(--danger-color);
     }
+    .btn-rename {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+    }
+    .btn-rename:hover {
+      background: rgba(59, 130, 246, 0.35);
+      color: #fff;
+    }
 
     /* User Management Search and Compact Cards */
     .user-search-wrapper {
@@ -534,6 +543,26 @@
     </div>
   </div>
 
+  <!-- Modal: Nomni o'zgartirish (Rename Track Modal) -->
+  <div id="modal-rename" class="hidden" onclick="if(event.target === this) closeRenameModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(5px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:380px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.6);">
+      <div style="font-weight:700; font-size:1.1rem; margin-bottom:6px; color:var(--text-main);">✏️ Nomni o'zgartirish</div>
+      <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">Trek uchun yangi nom kiriting:</div>
+      <input 
+        type="text" 
+        id="rename-input" 
+        class="user-search-input" 
+        style="width:100%; padding:12px 14px; margin-bottom:18px; border-radius:10px;" 
+        placeholder="Yangi nom..."
+        onkeydown="if(event.key === 'Enter') submitRenameTrack()"
+      />
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button onclick="closeRenameModal()" class="btn-sm btn-secondary" style="padding:8px 16px;">Bekor qilish</button>
+        <button onclick="submitRenameTrack()" class="btn-sm btn-primary" style="padding:8px 18px; background:var(--accent-gold); color:#000; font-weight:700;">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Upload Modal / Input Hidden -->
   <input type="file" id="admin-file-input" accept="audio/*,.mp3,.wav,.m4a,.ogg" style="display: none;" onchange="handleFileSelected(event)">
 
@@ -646,6 +675,7 @@
           let trackHtml = '<div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">Faol trek mavjud emas.</div>';
 
           if (activeTrack) {
+            const safeActiveTitle = (activeTrack.title || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
             trackHtml = `
               <div class="track-item track-active">
                 <div class="track-meta">
@@ -656,6 +686,9 @@
                   Format: ${activeTrack.format.toUpperCase()} | Davomiyligi: ${activeTrack.duration_seconds}s
                 </div>
                 <audio controls src="/api/admin/assets/${activeTrack.id}/preview" preload="none"></audio>
+                <div class="action-btn-row" style="margin-top: 6px;">
+                  <button onclick="openRenameModal('${activeTrack.id}', '${safeActiveTitle}', '${cat.id}')" class="btn-sm btn-rename">✏️ Nomni o'zgartirish</button>
+                </div>
               </div>
             `;
           }
@@ -704,19 +737,23 @@
           return;
         }
 
-        listEl.innerHTML = tracks.map(t => `
-          <div class="track-item ${t.is_active ? 'track-active' : ''}">
-            <div class="track-meta">
-              <span>${t.title}</span>
-              ${t.is_active ? '<span class="badge-active">FAOL</span>' : '<span class="badge-inactive">No-faol</span>'}
+        listEl.innerHTML = tracks.map(t => {
+          const safeTitle = (t.title || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          return `
+            <div class="track-item ${t.is_active ? 'track-active' : ''}">
+              <div class="track-meta">
+                <span>${t.title}</span>
+                ${t.is_active ? '<span class="badge-active">FAOL</span>' : '<span class="badge-inactive">No-faol</span>'}
+              </div>
+              <audio controls src="/api/admin/assets/${t.id}/preview" preload="none"></audio>
+              <div class="action-btn-row">
+                ${!t.is_active ? `<button onclick="activateTrack('${t.id}', '${categoryId}')" class="btn-sm btn-activate">Faollashtirish</button>` : ''}
+                <button onclick="deleteTrack('${t.id}', '${categoryId}')" class="btn-sm btn-delete">O'chirish</button>
+                <button onclick="openRenameModal('${t.id}', '${safeTitle}', '${categoryId}')" class="btn-sm btn-rename">✏️ Nomni o'zgartirish</button>
+              </div>
             </div>
-            <audio controls src="/api/admin/assets/${t.id}/preview" preload="none"></audio>
-            <div class="action-btn-row">
-              ${!t.is_active ? `<button onclick="activateTrack('${t.id}')" class="btn-sm btn-activate">Faollashtirish</button>` : ''}
-              <button onclick="deleteTrack('${t.id}')" class="btn-sm btn-delete">O'chirish</button>
-            </div>
-          </div>
-        `).join("");
+          `;
+        }).join("");
       } catch (e) {
         listEl.innerHTML = '<div style="color:var(--danger-color); font-size:0.8rem;">Yuklab bo\'lmadi.</div>';
       }
@@ -780,20 +817,111 @@
       }
     }
 
-    async function activateTrack(assetId) {
+    /* -------------------------------------------------------------
+       Track Rename Logic
+       ------------------------------------------------------------- */
+    let renameAssetContext = { assetId: null, categoryId: null };
+
+    function openRenameModal(assetId, currentTitle, categoryId) {
+      renameAssetContext = { assetId, categoryId };
+      const input = document.getElementById("rename-input");
+      input.value = currentTitle || "";
+      const modal = document.getElementById("modal-rename");
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 60);
+    }
+
+    function closeRenameModal() {
+      const modal = document.getElementById("modal-rename");
+      modal.classList.add("hidden");
+      renameAssetContext = { assetId: null, categoryId: null };
+    }
+
+    async function submitRenameTrack() {
+      const input = document.getElementById("rename-input");
+      const newTitle = input.value.trim();
+      if (!newTitle) {
+        alert("Iltimos, trek nomini kiriting!");
+        return;
+      }
+      const { assetId, categoryId } = renameAssetContext;
+      if (!assetId) return;
+
+      showAdminNotification("⏳ Nom yangilanmoqda...", "loading");
+      try {
+        const res = await fetch(`/api/admin/assets/${assetId}/rename`, {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ title: newTitle })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Nomni o'zgartirib bo'lmadi");
+
+        closeRenameModal();
+        showAdminNotification("✅ Trek nomi muvaffaqiyatli saqlandi!", "success");
+        await loadCategories();
+        if (categoryId) {
+          reloadCategoryTracks(categoryId);
+        }
+      } catch (err) {
+        showAdminNotification("❌ Xatolik: " + err.message, "error");
+      }
+    }
+
+    async function reloadCategoryTracks(categoryId) {
+      const listEl = document.getElementById(`list-${categoryId}`);
+      if (!listEl || listEl.classList.contains("hidden")) return;
+      try {
+        const res = await fetch(`/api/admin/assets?category=${categoryId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const tracks = await res.json();
+        if (tracks.length === 0) {
+          listEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted);">Hech qanday trek yo\'q.</div>';
+          return;
+        }
+
+        listEl.innerHTML = tracks.map(t => {
+          const safeTitle = (t.title || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          return `
+            <div class="track-item ${t.is_active ? 'track-active' : ''}">
+              <div class="track-meta">
+                <span>${t.title}</span>
+                ${t.is_active ? '<span class="badge-active">FAOL</span>' : '<span class="badge-inactive">No-faol</span>'}
+              </div>
+              <audio controls src="/api/admin/assets/${t.id}/preview" preload="none"></audio>
+              <div class="action-btn-row">
+                ${!t.is_active ? `<button onclick="activateTrack('${t.id}', '${categoryId}')" class="btn-sm btn-activate">Faollashtirish</button>` : ''}
+                <button onclick="deleteTrack('${t.id}', '${categoryId}')" class="btn-sm btn-delete">O'chirish</button>
+                <button onclick="openRenameModal('${t.id}', '${safeTitle}', '${categoryId}')" class="btn-sm btn-rename">✏️ Nomni o'zgartirish</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (e) {}
+    }
+
+    async function activateTrack(assetId, categoryId = null) {
       try {
         const res = await fetch(`/api/admin/assets/${assetId}/activate`, {
           method: "PATCH",
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (!res.ok) throw new Error("Faollashtirib bo'lmadi");
-        loadCategories();
+        await loadCategories();
+        if (categoryId) reloadCategoryTracks(categoryId);
       } catch (err) {
         alert(err.message);
       }
     }
 
-    async function deleteTrack(assetId) {
+    async function deleteTrack(assetId, categoryId = null) {
       if (!confirm("Haqiqatan ham bu trekni o'chirmoqchimisiz?")) return;
       try {
         const res = await fetch(`/api/admin/assets/${assetId}`, {
@@ -801,7 +929,8 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (!res.ok) throw new Error("O'chirib bo'lmadi");
-        loadCategories();
+        await loadCategories();
+        if (categoryId) reloadCategoryTracks(categoryId);
       } catch (err) {
         alert(err.message);
       }

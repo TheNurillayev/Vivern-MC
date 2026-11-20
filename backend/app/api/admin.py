@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 from typing import List, Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -158,6 +159,30 @@ async def activate_asset(
     )
 
     asset.is_active = True
+    await db.commit()
+    await db.refresh(asset)
+    return LibraryAssetResponse.model_validate(asset)
+
+class RenameAssetRequest(BaseModel):
+    title: str
+
+@router.patch("/assets/{asset_id}/rename", response_model=LibraryAssetResponse)
+async def rename_asset(
+    asset_id: str,
+    req: RenameAssetRequest,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    cleaned_title = req.title.strip()
+    if not cleaned_title:
+        raise HTTPException(status_code=400, detail="Trek nomi bo'sh bo'lishi mumkin emas")
+
+    res = await db.execute(select(LibraryAsset).where(LibraryAsset.id == asset_id))
+    asset = res.scalar_one_or_none()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Trek topilmadi")
+
+    asset.title = cleaned_title
     await db.commit()
     await db.refresh(asset)
     return LibraryAssetResponse.model_validate(asset)
