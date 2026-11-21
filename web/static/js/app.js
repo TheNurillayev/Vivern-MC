@@ -59,13 +59,24 @@
       nameEl.textContent = currentUser.first_name || "Foydalanuvchi";
     }
 
-    const remaining = Math.max(0, 3 - (currentUser.trial_count || 0));
+    const totalAllowed = 3 + (currentUser.extra_trials || 0);
+    const remaining = Math.max(0, totalAllowed - (currentUser.trial_count || 0));
+    const isPaused = Boolean(currentUser.save_trials);
+
     if (trialEl) {
-      trialEl.textContent = remaining > 0 ? `${remaining} ta bepul` : "5,000 so'm";
+      if (isPaused) {
+        trialEl.textContent = `⏸️ Saqlangan (${remaining} ta)`;
+      } else {
+        trialEl.textContent = remaining > 0 ? `${remaining} ta bepul` : "5,000 so'm";
+      }
     }
 
     if (orderPriceEl) {
-      orderPriceEl.textContent = remaining > 0 ? `Bepul (${remaining}/3 ta qoldi)` : "5,000 so'm";
+      if (isPaused) {
+        orderPriceEl.textContent = "5,000 so'm (Urinishlar saqlanmoqda)";
+      } else {
+        orderPriceEl.textContent = remaining > 0 ? `Bepul (${remaining}/${totalAllowed} ta qoldi)` : "5,000 so'm";
+      }
     }
 
     if (currentUser.is_admin && adminTab) {
@@ -80,7 +91,13 @@
     const fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() || "Foydalanuvchi";
     if (accName) accName.textContent = fullName;
     if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : "";
-    if (accTrial) accTrial.textContent = remaining > 0 ? `${remaining} ta bepul` : "Tugagan (Pullik rejim)";
+    if (accTrial) {
+      if (isPaused) {
+        accTrial.textContent = `${remaining} ta bepul (Tejalmoqda)`;
+      } else {
+        accTrial.textContent = remaining > 0 ? `${remaining} ta bepul` : "Tugagan (Pullik rejim)";
+      }
+    }
     if (accAvatar) {
       if (currentUser.avatar_url) {
         accAvatar.style.backgroundImage = `url("${currentUser.avatar_url}")`;
@@ -101,7 +118,7 @@
   document.addEventListener("click", (e) => {
     const menu = document.getElementById("profile-edit-menu");
     if (menu && !menu.classList.contains("hidden")) {
-      if (!e.target.closest("#profile-edit-menu") && !e.target.closest(".btn-profile-edit")) {
+      if (!e.target.closest("#profile-edit-menu") && !e.target.closest(".btn-profile-action") && !e.target.closest(".btn-profile-edit")) {
         menu.classList.add("hidden");
       }
     }
@@ -244,6 +261,158 @@
     } finally {
       event.target.value = "";
     }
+  };
+
+  // Modal: Gifts (Image 2)
+  window.openUserGiftsModal = async function () {
+    const modal = document.getElementById("modal-user-gifts");
+    const container = document.getElementById("user-gifts-content");
+    if (modal) modal.classList.remove("hidden");
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align:center; padding: 25px;"><div class="spinner"></div><div style="margin-top:10px; color:var(--text-muted); font-size:0.85rem;">Sovg\'alar yuklanmoqda...</div></div>';
+
+    try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
+      const res = await fetch("/api/auth/profile/gifts", {
+        headers: { "Authorization": `Bearer ${activeToken}` }
+      });
+      const gifts = await res.json();
+
+      if (!Array.isArray(gifts) || gifts.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 25px 15px; color: var(--text-muted);">
+            <div style="font-size: 2.8rem; margin-bottom: 8px;">🎁</div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: #fff;">Hozircha sovg'alar yo'q</div>
+            <div style="font-size: 0.8rem; margin-top: 6px; line-height: 1.5;">
+              Administrator faol foydalanuvchilarga bepul urinishlar va maxsus sovg'alar taqdim etadi. Sovg'a berilganda bu yerda ko'rinadi! 🎉
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = gifts.map(g => `
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <b style="color: var(--accent-gold); font-size: 0.92rem;">${escapeHtml(g.title)}</b>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">${g.created_at}</span>
+          </div>
+          <div style="font-size: 0.82rem; color: #e2e8f0; margin-bottom: 4px;">
+            ✨ +${g.trials_given} ta bepul urinish
+          </div>
+          ${g.message ? `<div style="font-size: 0.76rem; color: var(--text-muted); font-style: italic;">"${escapeHtml(g.message)}"</div>` : ''}
+        </div>
+      `).join("");
+    } catch (e) {
+      container.innerHTML = `<div style="color:var(--danger-color); font-size:0.85rem; padding:15px; text-align:center;">Sovg'alarni yuklashda xatolik yuz berdi.</div>`;
+    }
+  };
+
+  window.closeUserGiftsModal = function () {
+    const modal = document.getElementById("modal-user-gifts");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  // Modal: Settings (Image 2)
+  window.openUserSettingsModal = function () {
+    const modal = document.getElementById("modal-user-settings");
+    const notifToggle = document.getElementById("setting-toggle-notifs");
+    if (notifToggle) {
+      const stored = localStorage.getItem("vivern_notifications_enabled");
+      notifToggle.checked = stored === null ? true : stored === "true";
+    }
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeUserSettingsModal = function () {
+    const modal = document.getElementById("modal-user-settings");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  window.toggleNotificationsSetting = function (e) {
+    localStorage.setItem("vivern_notifications_enabled", e.target.checked);
+  };
+
+  // Modal: Trial Balance (Image 3)
+  window.openTrialBalanceModal = function () {
+    const modal = document.getElementById("modal-trial-balance");
+    updateTrialModalContent();
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeTrialBalanceModal = function () {
+    const modal = document.getElementById("modal-trial-balance");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  function updateTrialModalContent() {
+    if (!currentUser) return;
+    const totalAllowed = 3 + (currentUser.extra_trials || 0);
+    const remaining = Math.max(0, totalAllowed - (currentUser.trial_count || 0));
+    const countEl = document.getElementById("modal-trial-count-display");
+    const badgeEl = document.getElementById("trial-save-mode-badge");
+    const btnEl = document.getElementById("btn-toggle-save-trials");
+
+    if (countEl) {
+      countEl.textContent = `${remaining} ta bepul`;
+    }
+
+    if (currentUser.save_trials) {
+      if (badgeEl) {
+        badgeEl.innerHTML = "⏸️ <b>Tejalmoqda</b> (Keyingi buyurtmalar uchun saqlab qo'yilgan)";
+        badgeEl.style.borderColor = "rgba(245, 158, 11, 0.5)";
+        badgeEl.style.color = "var(--accent-gold)";
+      }
+      if (btnEl) {
+        btnEl.textContent = "▶️ Bepul urinishlarni faollashtirish";
+        btnEl.className = "btn btn-primary";
+      }
+    } else {
+      if (badgeEl) {
+        badgeEl.innerHTML = "🟢 <b>Faol</b> (Buyurtma berganda bepul urinish ishlatiladi)";
+        badgeEl.style.borderColor = "rgba(16, 185, 129, 0.5)";
+        badgeEl.style.color = "var(--accent-emerald)";
+      }
+      if (btnEl) {
+        btnEl.textContent = "⏸️ Bepul urinishlarni saqlab qo'yish (Tejash)";
+        btnEl.className = "btn btn-secondary";
+      }
+    }
+  }
+
+  window.toggleSaveTrialsAction = async function () {
+    const btn = document.getElementById("btn-toggle-save-trials");
+    if (btn) btn.disabled = true;
+
+    try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
+      const res = await fetch("/api/auth/profile/toggle-save-trials", {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${activeToken}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Holatni o'zgartirib bo'lmadi");
+
+      currentUser.save_trials = data.save_trials;
+      updateTrialModalContent();
+      renderUserProfile();
+    } catch (err) {
+      alert("Xatolik: " + err.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
+  // Modal: Price Explanation (Image 3)
+  window.openPriceExplanationModal = function () {
+    const modal = document.getElementById("modal-price-explanation");
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closePriceExplanationModal = function () {
+    const modal = document.getElementById("modal-price-explanation");
+    if (modal) modal.classList.add("hidden");
   };
 
   window.switchTab = function (tabId) {

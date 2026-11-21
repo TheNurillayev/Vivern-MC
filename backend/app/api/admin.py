@@ -11,6 +11,7 @@ from backend.app.core.database import get_db
 from backend.app.core.config import settings
 from backend.app.api.auth import get_admin_user
 from backend.app.models.user import User
+from backend.app.models.gift import Gift
 from backend.app.models.library_asset import LibraryAsset
 from backend.app.models.order import Order
 from backend.app.schemas.library import LibraryAssetResponse
@@ -305,6 +306,9 @@ async def list_admin_users(
             "username": user.username or "",
             "language_code": user.language_code or "uz",
             "trial_count": user.trial_count or 0,
+            "extra_trials": user.extra_trials or 0,
+            "save_trials": bool(user.save_trials),
+            "is_blocked": bool(user.is_blocked),
             "is_admin": bool(user.is_admin or (user.id in settings.admin_ids)),
             "avatar_url": f"/api/auth/profile/avatar/{user.id}" if user.avatar_path else None,
             "created_at": user.created_at.strftime("%Y-%m-%d %H:%M") if user.created_at else None,
@@ -328,6 +332,77 @@ async def reset_user_trials(
     user.trial_count = 0
     await db.commit()
     return {"success": True, "user_id": user_id, "trial_count": 0}
+
+class SendGiftRequest(BaseModel):
+    trials: int = 1
+    title: Optional[str] = "🎁 Maxsus Sovg'a"
+    message: Optional[str] = ""
+
+@router.post("/users/{user_id}/gift")
+async def send_user_gift(
+    user_id: int,
+    req: SendGiftRequest,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Admin sends free trials and gift notification to a user."""
+    res = await db.execute(select(User).where(User.id == user_id))
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    trials_to_add = max(1, req.trials)
+    user.extra_trials = (user.extra_trials or 0) + trials_to_add
+
+    gift = Gift(
+        user_id=user_id,
+        title=req.title or "🎁 Maxsus Sovg'a",
+        message=req.message or "",
+        trials_given=trials_to_add
+    )
+    db.add(gift)
+    await db.commit()
+
+    # Send telegram message to user if possible
+    try:
+        from backend.app.bot.bot import bot
+        text = (
+            f"🎉 *Sizga yangi sovg'a berildi!*\n\n"
+            f"{gift.title}\n"
+            f"✨ *Bonus:* +{trials_to_add} ta bepul audio montaj imkoniyati qo'shildi!\n"
+        )
+        if req.message:
+            text += f"💬 *Xabar:* {req.message}\n"
+        text += "\n_Ilovaga kirib, yangi bepul imkoniyatingizdan foydalanishingiz mumkin!_ 🎂🎶"
+        await bot.send_message(chat_id=user_id, text=text, parse_mode="Markdown")
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "user_id": user_id,
+        "extra_trials": user.extra_trials,
+        "trials_given": trials_to_add
+    }
+
+@router.post("/users/{user_id}/toggle-block")
+async def toggle_block_user(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Admin blocks or unblocks a user."""
+    if user_id == admin.id or user_id in settings.admin_ids:
+        raise HTTPException(status_code=400, detail="Administratorni bloklash mumkin emas")
+
+    res = await db.execute(select(User).where(User.id == user_id))
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    user.is_blocked = not bool(user.is_blocked)
+    await db.commit()
+    return {"success": True, "user_id": user_id, "is_blocked": user.is_blocked}
 
 @router.get("/costs/summary")
 async def get_cost_summary(

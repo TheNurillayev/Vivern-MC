@@ -71,8 +71,9 @@ async def create_order(
             detail=f"Maxsus musiqa audiosi yaroqsiz: {str(e)}"
         )
 
-    # Check free trial eligibility
-    is_free = user.trial_count < settings.FREE_TRIAL_GENERATIONS
+    # Check free trial eligibility (including gifts/extra_trials and save_trials pause)
+    total_allowed = settings.FREE_TRIAL_GENERATIONS + (user.extra_trials or 0)
+    is_free = (not user.save_trials) and (user.trial_count < total_allowed)
     price = 0 if is_free else settings.PRICE_PER_ORDER_SOM
     initial_status = "queued" if is_free else "payment_required"
 

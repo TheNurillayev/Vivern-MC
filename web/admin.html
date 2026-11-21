@@ -417,6 +417,61 @@
     .btn-back-miniapp:hover .btn-back-arrow {
       transform: translateX(-2px);
     }
+    /* 3-Dots Menu Button in Admin User Profile (Image 4) */
+    .btn-profile-dots {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+    .btn-profile-dots:hover, .btn-profile-dots:active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--accent-gold);
+      color: #fff;
+      transform: scale(1.08);
+    }
+    .admin-user-dropdown {
+      position: absolute;
+      top: 52px;
+      right: 14px;
+      background: #181b29;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      padding: 6px;
+      z-index: 25;
+      min-width: 170px;
+      text-align: left;
+      backdrop-filter: blur(10px);
+    }
+    .admin-user-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .admin-user-menu-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--accent-gold);
+    }
   </style>
 </head>
 <body>
@@ -534,7 +589,28 @@
       </button>
     </div>
 
-    <div class="user-profile-hero">
+    <div class="user-profile-hero" style="position: relative;">
+      <!-- 3-Dots Action Button (Image 4) -->
+      <button type="button" class="btn-profile-dots" onclick="toggleAdminUserMenu(event)" title="Qo'shimcha amallar">
+        ⋮
+      </button>
+
+      <!-- Dropdown Menu for User (Image 4) -->
+      <div id="admin-user-menu" class="admin-user-dropdown hidden">
+        <div class="admin-user-menu-item" onclick="adminOpenUserPhoto()">
+          <span>🖼️</span> Open photo
+        </div>
+        <div class="admin-user-menu-item" onclick="adminOpenSendGiftModal()">
+          <span>🎁</span> Send a gift
+        </div>
+        <div class="admin-user-menu-item" onclick="adminOpenPaymentHistoryModal()">
+          <span>💳</span> To'lovlar tarixi
+        </div>
+        <div class="admin-user-menu-item" id="menu-item-block" onclick="adminToggleBlockUser()" style="color: #fca5a5;">
+          <span>🚫</span> Block user
+        </div>
+      </div>
+
       <div class="user-profile-avatar-lg" id="fp-avatar">U</div>
       <div style="font-size: 1.25rem; font-weight: 700;" id="fp-fullname">Foydalanuvchi</div>
       <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;" id="fp-username">@username</div>
@@ -592,6 +668,71 @@
         <button onclick="closeRenameModal()" class="btn-sm btn-secondary" style="padding:8px 16px;">Bekor qilish</button>
         <button onclick="submitRenameTrack()" class="btn-sm btn-primary" style="padding:8px 18px; background:var(--accent-gold); color:#000; font-weight:700;">Saqlash</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: View User Photo (Open photo) -->
+  <div id="modal-admin-view-photo" class="hidden" onclick="if(event.target === this) closeAdminViewPhotoModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="position:relative; max-width:90vw; max-height:85vh; text-align:center;">
+      <button onclick="closeAdminViewPhotoModal()" style="position:absolute; top:-14px; right:-14px; width:36px; height:36px; border-radius:50%; background:#222; border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10;">✕</button>
+      <img id="admin-view-photo-img" src="" alt="Foydalanuvchi rasmi" style="max-width:85vw; max-height:75vh; border-radius:16px; object-fit:contain; box-shadow:0 15px 35px rgba(0,0,0,0.8); border:2px solid rgba(255,255,255,0.15);">
+    </div>
+  </div>
+
+  <!-- Modal: Send a gift to user (Image 4) -->
+  <div id="modal-admin-send-gift" class="hidden" onclick="if(event.target === this) closeAdminSendGiftModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:400px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-weight:700; font-size:1.15rem; color:var(--text-main);">🎁 Sovg'a yuborish (Send a gift)</div>
+        <button onclick="closeAdminSendGiftModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+        Foydalanuvchiga bepul audio montaj imkoniyatlarini sovg'a qiling:
+      </div>
+      
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:6px;">Qo'shiladigan bepul urinishlar soni:</label>
+        <select id="admin-gift-trials" style="width:100%; padding:10px 12px; border-radius:10px; background:rgba(0,0,0,0.4); border:1px solid var(--border-color); color:#fff; font-size:0.9rem;">
+          <option value="1">+1 ta bepul urinish</option>
+          <option value="2">+2 ta bepul urinish</option>
+          <option value="3" selected>+3 ta bepul urinish</option>
+          <option value="5">+5 ta bepul urinish</option>
+          <option value="10">+10 ta bepul urinish</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:6px;">Sovg'a sarlavhasi (ixtiyoriy):</label>
+        <input type="text" id="admin-gift-title" placeholder="Masalan: 🎁 Maxsus Sovg'a" style="width:100%; padding:10px 12px; border-radius:10px; background:rgba(0,0,0,0.4); border:1px solid var(--border-color); color:#fff; font-size:0.88rem; box-sizing:border-box;">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:6px;">Foydalanuvchiga xabar (Telegram orqali boradi):</label>
+        <input type="text" id="admin-gift-msg" placeholder="Masalan: Faol foydalanganingiz uchun rahmat!" style="width:100%; padding:10px 12px; border-radius:10px; background:rgba(0,0,0,0.4); border:1px solid var(--border-color); color:#fff; font-size:0.88rem; box-sizing:border-box;">
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button onclick="closeAdminSendGiftModal()" class="btn-sm btn-secondary" style="padding:8px 16px;">Bekor qilish</button>
+        <button id="btn-submit-send-gift" onclick="adminSubmitSendGift()" class="btn-sm" style="padding:8px 18px; background:var(--accent-gold); color:#000; font-weight:700;">🎁 Yuborish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: To'lovlar tarixi (Image 4) -->
+  <div id="modal-admin-user-payments" class="hidden" onclick="if(event.target === this) closeAdminUserPaymentsModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:440px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7); max-height:85vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-weight:700; font-size:1.15rem; color:var(--text-main);">💳 To'lovlar Tarixi</div>
+        <button onclick="closeAdminUserPaymentsModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+      <div id="admin-user-payments-content">
+        Yuklanmoqda...
+      </div>
+      <div style="margin-top:16px; text-align:right;">
+        <button onclick="closeAdminUserPaymentsModal()" class="btn-sm btn-secondary" style="padding:8px 18px;">Yopish</button>
+      </div>
+    </div>
+  </div>
     </div>
   </div>
 
@@ -1064,11 +1205,30 @@
     }
 
     /* -------------------------------------------------------------
-       FULL-SCREEN USER PROFILE MODAL
+       FULL-SCREEN USER PROFILE MODAL & 3-DOTS USER MENU (Image 4)
        ------------------------------------------------------------- */
+    let currentModalUser = null;
+
     async function openUserProfileModal(userId) {
       const user = allUsersCache.find(u => u.id === userId);
       if (!user) return;
+      currentModalUser = user;
+
+      // Close dropdown menu if open
+      const menu = document.getElementById("admin-user-menu");
+      if (menu) menu.classList.add("hidden");
+
+      // Update block menu item status
+      const blockBtn = document.getElementById("menu-item-block");
+      if (blockBtn) {
+        if (user.is_blocked) {
+          blockBtn.innerHTML = `<span>✅</span> Unblock user`;
+          blockBtn.style.color = "#34d399";
+        } else {
+          blockBtn.innerHTML = `<span>🚫</span> Block user`;
+          blockBtn.style.color = "#fca5a5";
+        }
+      }
 
       const modal = document.getElementById("fullscreen-user-profile");
       const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Noma'lum foydalanuvchi";
@@ -1096,10 +1256,12 @@
       }
 
       const used = user.trial_count || 0;
-      const remaining = Math.max(0, 3 - used);
+      const extra = user.extra_trials || 0;
+      const totalAllowed = 3 + extra;
+      const remaining = Math.max(0, totalAllowed - used);
       const trialsEl = document.getElementById("fp-trials");
       if (remaining > 0) {
-        trialsEl.textContent = `${remaining} ta bepul qoldi (${used}/3 ishlatilgan)`;
+        trialsEl.textContent = `${remaining} ta bepul qoldi (${used}/${totalAllowed} ishlatilgan)`;
         trialsEl.style.color = "var(--accent-emerald)";
       } else {
         trialsEl.textContent = `Tugagan (${used} ta ishlatilgan)`;
@@ -1162,6 +1324,189 @@
       const modal = document.getElementById("fullscreen-user-profile");
       modal.classList.add("hidden");
       document.body.style.overflow = ""; // Restore background scroll
+      currentModalUser = null;
+    }
+
+    /* -------------------------------------------------------------
+       3-Dots Dropdown & Action Functions (Image 4)
+       ------------------------------------------------------------- */
+    function toggleAdminUserMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById("admin-user-menu");
+      if (menu) menu.classList.toggle("hidden");
+    }
+
+    // Dismiss dropdown when clicking outside
+    document.addEventListener("click", function(e) {
+      const menu = document.getElementById("admin-user-menu");
+      const dotsBtn = e.target.closest(".btn-profile-dots");
+      if (menu && !menu.classList.contains("hidden") && !dotsBtn && !e.target.closest("#admin-user-menu")) {
+        menu.classList.add("hidden");
+      }
+    });
+
+    // 1. Open photo
+    function adminOpenUserPhoto() {
+      document.getElementById("admin-user-menu")?.classList.add("hidden");
+      if (!currentModalUser) return;
+      if (currentModalUser.avatar_url) {
+        document.getElementById("admin-view-photo-img").src = currentModalUser.avatar_url;
+        document.getElementById("modal-admin-view-photo").classList.remove("hidden");
+      } else {
+        alert("Bu foydalanuvchida profil rasmi o'rnatilmagan.");
+      }
+    }
+
+    function closeAdminViewPhotoModal() {
+      document.getElementById("modal-admin-view-photo")?.classList.add("hidden");
+    }
+
+    // 2. Send a gift
+    function adminOpenSendGiftModal() {
+      document.getElementById("admin-user-menu")?.classList.add("hidden");
+      if (!currentModalUser) return;
+      document.getElementById("admin-gift-trials").value = "3";
+      document.getElementById("admin-gift-title").value = "";
+      document.getElementById("admin-gift-msg").value = "";
+      document.getElementById("modal-admin-send-gift").classList.remove("hidden");
+    }
+
+    function closeAdminSendGiftModal() {
+      document.getElementById("modal-admin-send-gift")?.classList.add("hidden");
+    }
+
+    async function adminSubmitSendGift() {
+      if (!currentModalUser) return;
+      const trials = parseInt(document.getElementById("admin-gift-trials").value, 10) || 3;
+      const title = document.getElementById("admin-gift-title").value.trim() || undefined;
+      const message = document.getElementById("admin-gift-msg").value.trim() || undefined;
+      const submitBtn = document.getElementById("btn-submit-send-gift");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Yuborilmoqda...";
+
+      try {
+        const res = await fetch(`/api/admin/users/${currentModalUser.id}/gift`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ trials, title, message })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Sovg'a yuborishda xatolik");
+
+        closeAdminSendGiftModal();
+        showAdminNotification(`✅ ${currentModalUser.first_name || 'Foydalanuvchi'}ga ${trials} ta bepul urinish sovg'a qilindi!`, "success");
+        
+        currentModalUser.extra_trials = (currentModalUser.extra_trials || 0) + trials;
+        openUserProfileModal(currentModalUser.id);
+      } catch (err) {
+        alert("Xatolik: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "🎁 Yuborish";
+      }
+    }
+
+    // 3. To'lovlar tarixi
+    async function adminOpenPaymentHistoryModal() {
+      document.getElementById("admin-user-menu")?.classList.add("hidden");
+      if (!currentModalUser) return;
+      const modal = document.getElementById("modal-admin-user-payments");
+      const content = document.getElementById("admin-user-payments-content");
+      modal.classList.remove("hidden");
+      content.innerHTML = '<div style="text-align:center; padding:15px; color:var(--text-muted);"><div class="spinner"></div><div style="margin-top:6px; font-size:0.8rem;">To\'lovlar hisoblanmoqda...</div></div>';
+
+      try {
+        const res = await fetch(`/api/admin/orders?user_id=${currentModalUser.id}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const orders = await res.json();
+        
+        const completedOrders = orders.filter(o => o.status === "completed");
+        const totalAllowedTrials = 3 + (currentModalUser.extra_trials || 0);
+        const usedTrials = Math.min(completedOrders.length, totalAllowedTrials);
+        const paidOrders = Math.max(0, completedOrders.length - usedTrials);
+        const totalPaid = paidOrders * 5000;
+
+        content.innerHTML = `
+          <div style="background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:12px; padding:14px; margin-bottom:14px;">
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:4px;">Jami Tayyorlangan Buyurtmalar:</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#fff;">${completedOrders.length} ta</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+              (${usedTrials} ta bepul sinovlar hisobidan, ${paidOrders} ta pullik buyurtma)
+            </div>
+          </div>
+
+          <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:14px; margin-bottom:14px;">
+            <div style="font-size:0.85rem; color:var(--accent-gold); font-weight:600; margin-bottom:4px;">Jami To'langan Mablag':</div>
+            <div style="font-size:1.4rem; font-weight:800; color:#fbbf24;">${totalPaid.toLocaleString()} so'm</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+              Tarif: 5,000 so'm / buyurtma
+            </div>
+          </div>
+
+          <div style="font-size:0.8rem; font-weight:600; margin-bottom:8px; color:var(--text-muted);">Buyurtmalar ro'yxati:</div>
+          ${orders.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-muted);">Hech qanday buyurtma mavjud emas.</div>' : `
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${orders.slice(0, 10).map((o, idx) => `
+                <div style="padding:10px; background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid rgba(255,255,255,0.06); font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <div style="font-weight:600; color:#fff;">#${o.id.substring(0, 8)} - ${o.special_music_name || 'Tabrik'}</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted);">${o.created_at || ''}</div>
+                  </div>
+                  <div>
+                    ${idx < totalAllowedTrials ? '<span style="color:var(--accent-emerald); font-weight:600; font-size:0.75rem;">Bepul (Trial)</span>' : '<span style="color:var(--accent-gold); font-weight:600; font-size:0.75rem;">5,000 so\'m</span>'}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          `}
+        `;
+      } catch (err) {
+        content.innerHTML = `<div style="color:var(--danger-color); padding:10px;">Yuklab bo'lmadi: ${err.message}</div>`;
+      }
+    }
+
+    function closeAdminUserPaymentsModal() {
+      document.getElementById("modal-admin-user-payments")?.classList.add("hidden");
+    }
+
+    // 4. Block / Unblock user
+    async function adminToggleBlockUser() {
+      document.getElementById("admin-user-menu")?.classList.add("hidden");
+      if (!currentModalUser) return;
+      const actionText = currentModalUser.is_blocked ? "blokdan chiqarishni" : "bloklashni";
+      if (!confirm(`Haqiqatan ham ${currentModalUser.first_name || 'bu foydalanuvchi'}ni ${actionText} xohlaysizmi?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/users/${currentModalUser.id}/toggle-block`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Amalni bajarib bo'lmadi");
+
+        currentModalUser.is_blocked = data.is_blocked;
+        showAdminNotification(data.message, data.is_blocked ? "error" : "success");
+
+        const blockBtn = document.getElementById("menu-item-block");
+        if (blockBtn) {
+          if (currentModalUser.is_blocked) {
+            blockBtn.innerHTML = `<span>✅</span> Unblock user`;
+            blockBtn.style.color = "#34d399";
+          } else {
+            blockBtn.innerHTML = `<span>🚫</span> Block user`;
+            blockBtn.style.color = "#fca5a5";
+          }
+        }
+
+        const u = allUsersCache.find(x => x.id === currentModalUser.id);
+        if (u) u.is_blocked = data.is_blocked;
+      } catch (err) {
+        alert("Xatolik: " + err.message);
+      }
     }
 
     document.addEventListener("DOMContentLoaded", initAdmin);

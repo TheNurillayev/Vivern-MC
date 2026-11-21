@@ -15,6 +15,7 @@ from backend.app.core.config import settings
 from backend.app.core.security import verify_telegram_init_data, is_admin_user
 from backend.app.schemas.auth import TelegramInitDataRequest, AuthResponse, UserInfo
 from backend.app.models.user import User
+from backend.app.models.gift import Gift
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -72,6 +73,9 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized: User does not exist or session expired")
+
+    if user.is_blocked and not (user.is_admin or user.id in settings.admin_ids):
+        raise HTTPException(status_code=403, detail="Hisobingiz bloklangan. Iltimos, administrator bilan bog'laning.")
 
     return user
 
@@ -145,6 +149,9 @@ async def authenticate_telegram(req: TelegramInitDataRequest, db: AsyncSession =
             username=user.username,
             language_code=user.language_code,
             trial_count=user.trial_count,
+            extra_trials=user.extra_trials or 0,
+            save_trials=bool(user.save_trials),
+            is_blocked=bool(user.is_blocked),
             is_admin=user.is_admin,
             avatar_url=avatar_url
         ),
@@ -256,3 +263,36 @@ async def update_profile_name(
         "first_name": current_user.first_name,
         "last_name": current_user.last_name
     }
+
+@router.patch("/profile/toggle-save-trials")
+async def toggle_save_trials(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    current_user.save_trials = not bool(current_user.save_trials)
+    await db.commit()
+    await db.refresh(current_user)
+    return {
+        "success": True,
+        "save_trials": current_user.save_trials
+    }
+
+@router.get("/profile/gifts")
+async def get_my_gifts(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(Gift).where(Gift.user_id == current_user.id).order_by(Gift.created_at.desc())
+    )
+    gifts = res.scalars().all()
+    return [
+        {
+            "id": g.id,
+            "title": g.title,
+            "message": g.message,
+            "trials_given": g.trials_given,
+            "created_at": g.created_at.strftime("%Y-%m-%d %H:%M") if g.created_at else ""
+        }
+        for g in gifts
+    ]

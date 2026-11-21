@@ -13,6 +13,9 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(255), default="")
     language_code: Mapped[str] = mapped_column(String(16), default="uz")
     trial_count: Mapped[int] = mapped_column(Integer, default=0) # Number of free generations used
+    extra_trials: Mapped[int] = mapped_column(Integer, default=0) # Extra bonus/gift trials
+    save_trials: Mapped[bool] = mapped_column(Boolean, default=False) # True = save trials for later (deactivated)
+    is_blocked: Mapped[bool] = mapped_column(Boolean, default=False) # Admin ban status
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     avatar_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, default=None)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

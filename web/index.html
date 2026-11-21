@@ -43,7 +43,7 @@
       </div>
       <div>
         <div class="brand-title">VIVERN MC</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted);">Audio Production Studio</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);">Production Studio</div>
       </div>
     </div>
     <div class="user-badge" style="display:none;">
@@ -285,12 +285,20 @@
     <!-- Page: Account Details -->
     <div id="page-account" class="tab-content hidden">
       <div class="card" style="position: relative; text-align: center; padding: 25px 20px;">
-        <!-- Pencil Edit Button (Top Right) -->
-        <button type="button" class="btn-profile-edit" onclick="toggleProfileEditMenu(event)" title="Profilni tahrirlash">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-          </svg>
-        </button>
+        <!-- Vertical Actions Stack: Pencil, Gift, Settings (Image 2) -->
+        <div class="profile-actions-stack">
+          <button type="button" class="btn-profile-action" onclick="toggleProfileEditMenu(event)" title="Profilni tahrirlash">
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+          </button>
+          <button type="button" class="btn-profile-action" onclick="openUserGiftsModal()" title="Sovg'alar">
+            🎁
+          </button>
+          <button type="button" class="btn-profile-action" onclick="openUserSettingsModal()" title="Sozlamalar">
+            ⚙️
+          </button>
+        </div>
 
         <!-- Dropdown Menu (Image 2) -->
         <div id="profile-edit-menu" class="profile-edit-dropdown hidden">
@@ -314,14 +322,18 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><span>💳</span> Xizmat Balansi va Tarif</div>
+        <div class="card-title"><span>💳</span> Xizmat Balansi</div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
           <span style="color: var(--text-muted);">Bepul sinovlar:</span>
-          <span id="acc-trial-status" style="font-weight: 600; color: var(--accent-emerald);">3 ta mavjud</span>
+          <button type="button" id="acc-trial-btn" class="btn-balance-pill pill-green" onclick="openTrialBalanceModal()">
+            <span id="acc-trial-status">2 ta bepul</span> ⚙️
+          </button>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: var(--text-muted);">Oddiy buyurtma narxi:</span>
-          <span style="font-weight: 600; color: var(--accent-gold);">5,000 so'm</span>
+          <span style="color: var(--text-muted);">Buyurtma narxi:</span>
+          <button type="button" class="btn-balance-pill pill-orange" onclick="openPriceExplanationModal()">
+            <span>5,000 so'm</span> ℹ️
+          </button>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
           <span style="color: var(--text-muted);">Jami buyurtmalarim:</span>
@@ -332,7 +344,7 @@
       <div class="card">
         <div class="card-title"><span>📞</span> Qo'llab-quvvatlash va Aloqa</div>
         <div class="card-desc" style="margin: 8px 0 14px;">
-          Savollar, takliflar yoki to'lov bo'yicha yordam kerak bo'lsa, ma'muriyat bilan bog'laning.
+          Savollar, takliflar yoki to'lov bo'yicha yordam kerak bo'lsa, bog'laning.
         </div>
         <a href="https://t.me/TheNurillayev" target="_blank" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; padding: 12px; border-radius: 10px;">
           <span>👑</span> Administrator bilan bog'lanish (@TheNurillayev)
@@ -394,6 +406,140 @@
       <div style="display: flex; gap: 10px;">
         <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteOrderModal()">Bekor qilish</button>
         <button id="btn-confirm-delete-order" class="btn" style="flex: 1; background: var(--danger-color); color: #fff; font-weight: 700;" onclick="confirmDeleteOrder()">O'chirish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: User Gifts (Image 2) -->
+  <div id="modal-user-gifts" class="modal-overlay hidden" onclick="if(event.target === this) closeUserGiftsModal()">
+    <div class="modal-card" style="text-align: left; max-width: 420px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <span>🎁</span> Mening Sovg'alarim
+        </div>
+        <button onclick="closeUserGiftsModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <div id="user-gifts-content">
+        <div style="text-align:center; padding: 20px 10px; color: var(--text-muted); font-size: 0.88rem;">
+          Yuklanmoqda...
+        </div>
+      </div>
+      <div style="margin-top: 16px; text-align: right;">
+        <button onclick="closeUserGiftsModal()" class="btn btn-secondary" style="width: auto; padding: 8px 18px; font-size: 0.85rem;">Yopish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: User Settings (Image 2) -->
+  <div id="modal-user-settings" class="modal-overlay hidden" onclick="if(event.target === this) closeUserSettingsModal()">
+    <div class="modal-card" style="text-align: left; max-width: 420px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <span>⚙️</span> Sozlamalar
+        </div>
+        <button onclick="closeUserSettingsModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      
+      <div class="toggle-switch-wrapper" style="margin-bottom: 14px;">
+        <div>
+          <div style="font-weight: 600; font-size: 0.92rem; color: #fff;">🔔 Bildirishnomalar</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+            Buyurtma holati haqida botdan xabar olish
+          </div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="setting-toggle-notifs" onchange="toggleNotificationsSetting(event)" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; font-size: 0.82rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between;">
+          <span>🌐 Ilova tili:</span>
+          <b style="color: #fff;">O'zbekcha (Lotin)</b>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>📱 Ilova versiyasi:</span>
+          <b style="color: var(--accent-gold);">v1.0.0</b>
+        </div>
+      </div>
+
+      <div style="margin-top: 18px; text-align: right;">
+        <button onclick="closeUserSettingsModal()" class="btn btn-secondary" style="width: auto; padding: 8px 18px; font-size: 0.85rem;">Yopish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Trial Balance & Save for Later Toggle (Image 3) -->
+  <div id="modal-trial-balance" class="modal-overlay hidden" onclick="if(event.target === this) closeTrialBalanceModal()">
+    <div class="modal-card" style="text-align: left; max-width: 420px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <span>💳</span> Bepul Urinishlar Holati
+        </div>
+        <button onclick="closeTrialBalanceModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      
+      <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Qolgan bepul urinishlaringiz:</div>
+        <div id="modal-trial-count-display" style="font-size: 1.6rem; font-weight: 800; color: var(--accent-emerald); margin-top: 4px;">
+          2 ta bepul
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 6px; color: #fff;">
+          🔄 Bepul urinishlardan foydalanish rejimi:
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px;">
+          Bepul urinishlaringizni hozirgi buyurtmada sarflamasdan, keyingi muhim tabriklar uchun <b>saqlab qo'yishingiz (deactivate)</b> yoki hozir ishlatish uchun <b>faollashtirishingiz (activate)</b> mumkin.
+        </div>
+        <div id="trial-save-mode-badge" style="padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+          🟢 Faol (Buyurtmada bepul urinish ishlatiladi)
+        </div>
+        <button type="button" id="btn-toggle-save-trials" onclick="toggleSaveTrialsAction()" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 0.85rem; font-weight: 700;">
+          ⏸️ Bepul urinishlarni saqlab qo'yish (Tejash)
+        </button>
+      </div>
+
+      <div style="text-align: right;">
+        <button onclick="closeTrialBalanceModal()" class="btn btn-secondary" style="width: auto; padding: 8px 18px; font-size: 0.85rem;">Yopish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Price Explanation (Image 3) -->
+  <div id="modal-price-explanation" class="modal-overlay hidden" onclick="if(event.target === this) closePriceExplanationModal()">
+    <div class="modal-card" style="text-align: left; max-width: 440px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <span>💰</span> Buyurtma Narxi va Tarif
+        </div>
+        <button onclick="closePriceExplanationModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+
+      <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Oddiy audio montaj narxi:</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--accent-gold); margin-top: 4px;">
+          5,000 so'm <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">/ 1 ta buyurtma</span>
+        </div>
+      </div>
+
+      <div style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 14px;">
+        <div style="font-weight: 600; color: #fff; margin-bottom: 8px;">Nega ushbu narx belgilangan?</div>
+        <p style="margin-bottom: 8px;">
+          ⚡ <b>Server xarajatlari:</b> Katta hajmdagi audio fayllarni yuqori sifatda, shovqinlardan tozalab va soniyalar ichida montaj qiluvchi server resurslari.
+        </p>
+        <p style="margin-bottom: 8px;">
+          🧠 <b>Sun'iy Intellekt va API:</b> Suhbat audiosidagi tilaklarni aniq tahlil qilish va ovozni yaxshilash texnologiyalari.
+        </p>
+        <p>
+          🛡️ <b>Doimiy Xotira (Storage):</b> Barcha tayyorlangan audiolaringiz doimo saqlanib, istagan payt qayta yuklab olish imkoniyatini ta'minlash.
+        </p>
+      </div>
+
+      <div style="text-align: right;">
+        <button onclick="closePriceExplanationModal()" class="btn btn-secondary" style="width: auto; padding: 8px 20px; font-size: 0.85rem; font-weight: 600;">Tushunarli</button>
       </div>
     </div>
   </div>
