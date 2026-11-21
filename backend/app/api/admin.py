@@ -306,6 +306,7 @@ async def list_admin_users(
             "language_code": user.language_code or "uz",
             "trial_count": user.trial_count or 0,
             "is_admin": bool(user.is_admin or (user.id in settings.admin_ids)),
+            "avatar_url": f"/api/auth/profile/avatar/{user.id}" if user.avatar_path else None,
             "created_at": user.created_at.strftime("%Y-%m-%d %H:%M") if user.created_at else None,
             "total_orders": total_orders or 0,
             "completed_orders": completed_orders or 0

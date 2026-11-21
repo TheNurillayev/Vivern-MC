@@ -2,7 +2,10 @@ import json
 import base64
 import hmac
 import hashlib
-from fastapi import APIRouter, Depends, HTTPException, Header, Query
+import os
+import time
+from fastapi import APIRouter, Depends, HTTPException, Header, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
@@ -128,6 +131,10 @@ async def authenticate_telegram(req: TelegramInitDataRequest, db: AsyncSession =
 
     token = create_session_token(user.id, user.is_admin)
 
+    avatar_url = None
+    if user.avatar_path and os.path.exists(user.avatar_path):
+        avatar_url = f"/api/auth/profile/avatar/{user.id}"
+
     return AuthResponse(
         success=True,
         user=UserInfo(
@@ -137,7 +144,88 @@ async def authenticate_telegram(req: TelegramInitDataRequest, db: AsyncSession =
             username=user.username,
             language_code=user.language_code,
             trial_count=user.trial_count,
-            is_admin=user.is_admin
+            is_admin=user.is_admin,
+            avatar_url=avatar_url
         ),
         token=token
+    )
+
+@router.post("/profile/photo")
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="Rasm tanlanmadi")
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    allowed_exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    if ext not in allowed_exts:
+        raise HTTPException(
+            status_code=400,
+            detail="Faqat rasm formatlari (.jpg, .jpeg, .png, .webp) qabul qilinadi"
+        )
+
+    avatars_dir = settings.storage_path / "avatars"
+    avatars_dir.mkdir(parents=True, exist_ok=True)
+
+    # Clean up previous avatar files for this user so only 1 photo exists
+    for old_ext in allowed_exts:
+        old_path = avatars_dir / f"avatar_{current_user.id}{old_ext}"
+        if old_path.exists():
+            try:
+                old_path.unlink()
+            except Exception:
+                pass
+
+    target_filename = f"avatar_{current_user.id}{ext}"
+    target_path = avatars_dir / target_filename
+
+    max_size = 10 * 1024 * 1024  # 10MB
+    size = 0
+    with open(target_path, "wb") as buffer:
+        while chunk := await file.read(1024 * 64):
+            size += len(chunk)
+            if size > max_size:
+                buffer.close()
+                if target_path.exists():
+                    target_path.unlink()
+                raise HTTPException(status_code=400, detail="Rasm hajmi 10MB dan oshmasligi kerak")
+            buffer.write(chunk)
+
+    current_user.avatar_path = str(target_path)
+    await db.commit()
+    await db.refresh(current_user)
+
+    ts = int(time.time())
+    return {
+        "success": True,
+        "avatar_url": f"/api/auth/profile/avatar/{current_user.id}?t={ts}"
+    }
+
+@router.get("/profile/avatar/{user_id}")
+async def get_user_avatar(
+    user_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(User).where(User.id == user_id))
+    user = res.scalar_one_or_none()
+    if not user or not user.avatar_path or not os.path.exists(user.avatar_path):
+        raise HTTPException(status_code=404, detail="Profil rasmi topilmadi")
+
+    ext = os.path.splitext(user.avatar_path)[1].lower()
+    media_types = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif"
+    }
+    media_type = media_types.get(ext, "image/jpeg")
+
+    return FileResponse(
+        user.avatar_path,
+        media_type=media_type,
+        headers={"Cache-Control": "public, max-age=86400"}
     )

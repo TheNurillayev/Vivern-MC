@@ -386,6 +386,37 @@
       margin-top: 8px;
       font-size: 0.82rem;
     }
+    .btn-back-miniapp {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-decoration: none;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      color: var(--text-main);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-back-miniapp:hover, .btn-back-miniapp:active {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(139, 92, 246, 0.15));
+      border-color: var(--accent-gold);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .btn-back-arrow {
+      font-size: 1.15rem;
+      line-height: 1;
+      color: var(--accent-gold);
+      transition: transform 0.2s;
+    }
+    .btn-back-miniapp:hover .btn-back-arrow {
+      transform: translateX(-2px);
+    }
   </style>
 </head>
 <body>
@@ -397,8 +428,9 @@
         <div style="font-size: 0.72rem; color: var(--text-muted);" id="admin-subtitle">Boshqaruv Markazi</div>
       </div>
     </div>
-    <a href="/index.html" class="badge-tag" style="text-decoration:none; background: rgba(255,255,255,0.1); color: var(--text-main);">
-      ← Mini App
+    <a href="/index.html" class="btn-back-miniapp">
+      <span class="btn-back-arrow">←</span>
+      <span>Mini App</span>
     </a>
   </header>
 
@@ -983,10 +1015,14 @@
           ? `<span class="user-role-badge role-admin">ADMIN</span>`
           : `<span class="user-role-badge role-user">FOYDALANUVCHI</span>`;
 
+        const avatarHtml = u.avatar_url
+          ? `<div class="user-compact-avatar" style="background-image:url('${u.avatar_url}'); background-size:cover; background-position:center; color:transparent;"></div>`
+          : `<div class="user-compact-avatar">${initial}</div>`;
+
         return `
           <div class="user-compact-card">
             <div class="user-compact-left">
-              <div class="user-compact-avatar">${initial}</div>
+              ${avatarHtml}
               <div class="user-compact-info">
                 <div class="user-compact-name">${fullName}</div>
                 <div class="user-compact-username">${usernameDisplay}</div>
@@ -1038,7 +1074,16 @@
       const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Noma'lum foydalanuvchi";
       const initial = (user.first_name || user.username || "U")[0].toUpperCase();
 
-      document.getElementById("fp-avatar").textContent = initial;
+      const fpAvatar = document.getElementById("fp-avatar");
+      if (user.avatar_url) {
+        fpAvatar.style.backgroundImage = `url("${user.avatar_url}")`;
+        fpAvatar.style.backgroundSize = "cover";
+        fpAvatar.style.backgroundPosition = "center";
+        fpAvatar.textContent = "";
+      } else {
+        fpAvatar.style.backgroundImage = "none";
+        fpAvatar.textContent = initial;
+      }
       document.getElementById("fp-fullname").textContent = fullName;
       document.getElementById("fp-username").textContent = user.username ? `@${user.username}` : "username yo'q";
       document.getElementById("fp-id-badge").textContent = `Telegram ID: ${user.id}`;

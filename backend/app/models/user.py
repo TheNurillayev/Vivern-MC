@@ -1,3 +1,4 @@
+from typing import Optional
 import datetime
 from sqlalchemy import BigInteger, String, Integer, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -13,6 +14,7 @@ class User(Base):
     language_code: Mapped[str] = mapped_column(String(16), default="uz")
     trial_count: Mapped[int] = mapped_column(Integer, default=0) # Number of free generations used
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    avatar_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, default=None)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow

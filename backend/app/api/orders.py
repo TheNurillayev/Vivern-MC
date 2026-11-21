@@ -200,9 +200,13 @@ async def download_output_audio(
     if not order or not order.output_audio_path or not os.path.exists(order.output_audio_path):
         raise HTTPException(status_code=404, detail="Audio fayl hali tayyor emas yoki topilmadi")
 
+    filename = f"Vivern_MC_{order_id[:8]}.mp3"
     return FileResponse(
         order.output_audio_path,
         media_type="audio/mpeg",
-        filename=f"Vivern_MC_{order_id[:8]}.mp3"
+        filename=filename,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
     )
 

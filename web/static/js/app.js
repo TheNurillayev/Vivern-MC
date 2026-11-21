@@ -76,11 +76,80 @@
     const accName = document.getElementById("acc-name");
     const accUsername = document.getElementById("acc-username");
     const accTrial = document.getElementById("acc-trial-status");
+    const accAvatar = document.getElementById("acc-avatar");
     const fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() || "Foydalanuvchi";
     if (accName) accName.textContent = fullName;
     if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : "";
     if (accTrial) accTrial.textContent = remaining > 0 ? `${remaining} ta bepul` : "Tugagan (Pullik rejim)";
+    if (accAvatar) {
+      if (currentUser.avatar_url) {
+        accAvatar.style.backgroundImage = `url("${currentUser.avatar_url}")`;
+        accAvatar.textContent = "";
+      } else {
+        accAvatar.style.backgroundImage = "none";
+        accAvatar.textContent = "👤";
+      }
+    }
   }
+
+  window.triggerProfilePhotoUpload = function () {
+    const input = document.getElementById("input-profile-photo");
+    if (input) input.click();
+  };
+
+  window.handleProfilePhotoSelected = async function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Rasm hajmi 10MB dan oshmasligi kerak!");
+      return;
+    }
+
+    const accAvatar = document.getElementById("acc-avatar");
+    // Instant local preview
+    const previewUrl = URL.createObjectURL(file);
+    if (accAvatar) {
+      accAvatar.style.backgroundImage = `url("${previewUrl}")`;
+      accAvatar.textContent = "";
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
+      const res = await fetch("/api/auth/profile/photo", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${activeToken}`
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Rasmni yuklab bo'lmadi");
+
+      currentUser.avatar_url = data.avatar_url;
+      if (accAvatar) {
+        accAvatar.style.backgroundImage = `url("${data.avatar_url}")`;
+        accAvatar.textContent = "";
+      }
+      if (window.Telegram?.WebApp?.showPopup) {
+        window.Telegram.WebApp.showPopup({
+          title: "Muvaffaqiyatli",
+          message: "Profil rasmingiz muvaffaqiyatli saqlandi!",
+          buttons: [{ type: "ok" }]
+        });
+      } else {
+        alert("✅ Profil rasmingiz muvaffaqiyatli saqlandi!");
+      }
+    } catch (err) {
+      alert("Xatolik: " + err.message);
+      renderUserProfile();
+    } finally {
+      event.target.value = "";
+    }
+  };
 
   window.switchTab = function (tabId) {
     document.querySelectorAll(".tab-content").forEach((el) => el.classList.add("hidden"));
@@ -460,6 +529,74 @@
     }
   };
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  window.downloadOrderAudio = async function (orderId, btnEl) {
+    const origHtml = btnEl ? btnEl.innerHTML : "";
+    if (btnEl) {
+      btnEl.innerHTML = "⏳ Yuklanmoqda...";
+      btnEl.disabled = true;
+    }
+    const fileName = `Vivern_MC_${orderId.substring(0, 8)}.mp3`;
+    const dlUrl = `/api/orders/${orderId}/download`;
+    const fullUrl = new URL(dlUrl, window.location.origin).href;
+
+    // 1. Try Telegram native downloadFile (Bot API 8.0+)
+    if (window.Telegram?.WebApp?.downloadFile) {
+      try {
+        window.Telegram.WebApp.downloadFile({
+          url: fullUrl,
+          file_name: fileName
+        }, function (accepted) {
+          if (btnEl) {
+            btnEl.innerHTML = origHtml;
+            btnEl.disabled = false;
+          }
+        });
+        return;
+      } catch (e) {
+        console.warn("Telegram downloadFile fallback", e);
+      }
+    }
+
+    // 2. Direct Blob Fetch & Download for mobile WebView & browsers
+    try {
+      const res = await fetch(fullUrl);
+      if (!res.ok) throw new Error("Faylni yuklab bo'lmadi");
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+        if (a.parentNode) a.parentNode.removeChild(a);
+      }, 1500);
+    } catch (err) {
+      // 3. Fallback: open link externally
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(fullUrl);
+      } else {
+        window.open(fullUrl, "_blank");
+      }
+    } finally {
+      if (btnEl) {
+        btnEl.innerHTML = origHtml;
+        btnEl.disabled = false;
+      }
+    }
+  };
+
   let pollTimer = null;
   window.loadOrders = async function (isAutoPoll = false) {
     if (pollTimer) clearTimeout(pollTimer);
@@ -471,8 +608,9 @@
     }
 
     try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
       const res = await fetch("/api/orders/my", {
-        headers: { "Authorization": `Bearer ${authToken}` }
+        headers: { "Authorization": `Bearer ${activeToken}` }
       });
       if (!res.ok) throw new Error("Buyurtmalarni yuklab bo'lmadi");
       const orders = await res.json();
@@ -525,20 +663,24 @@
               </div>
               ${statusBadge}
             </div>
-            <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
-              📞 Suhbat: <b>${o.original_recording_name}</b><br>
-              🎶 Musiqa: <b>${o.special_music_name}</b>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px; width: 100%; overflow: hidden;">
+              <div class="order-text-row">
+                📞 Suhbat: <b style="color: var(--text-main);">${escapeHtml(o.original_recording_name)}</b>
+              </div>
+              <div class="order-text-row" style="margin-top: 3px;">
+                🎶 Musiqa: <b style="color: var(--text-main);">${escapeHtml(o.special_music_name)}</b>
+              </div>
             </div>
             ${o.status === "completed" ? `
               <div style="margin-top: 10px;">
                 <audio controls src="${dlUrl}" style="width:100%; height:36px;"></audio>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; flex-wrap: wrap;">
                   <span style="font-size: 0.75rem; color: var(--accent-emerald);">
                     ✓ Telegram botingizga ham yuborildi
                   </span>
-                  <a href="${dlUrl}" download="Vivern_MC_${o.id.substring(0,8)}.mp3" class="btn btn-secondary" style="width:auto; padding:6px 12px; font-size:0.8rem; text-decoration:none;">
+                  <button type="button" onclick="downloadOrderAudio('${o.id}', this)" class="btn btn-secondary" style="width:auto; padding:7px 14px; font-size:0.8rem; border-radius:10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; flex-shrink: 0;">
                     ⬇️ MP3 Yuklab Olish
-                  </a>
+                  </button>
                 </div>
               </div>
             ` : ""}

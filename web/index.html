@@ -17,9 +17,9 @@
         <div style="font-size: 0.72rem; color: var(--text-muted);">Audio Production Studio</div>
       </div>
     </div>
-    <div class="user-badge">
-      <span id="user-name">Yuklanmoqda...</span>
-      <span id="trial-badge" class="badge-tag">3 ta bepul</span>
+    <div class="user-badge" style="display:none;">
+      <span id="user-name"></span>
+      <span id="trial-badge"></span>
     </div>
   </header>
 
@@ -29,18 +29,18 @@
 
     <!-- Page: Create Audio -->
     <div id="page-create" class="tab-content">
-      <div class="status-banner">
+      <div class="status-banner" style="padding: 10px 14px; margin-bottom: 12px;">
         <div>
-          <div style="font-weight: 600; font-size: 0.95rem;">🎉 Tug'ilgan kun tabrigi audiosi</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+          <div style="font-weight: 600; font-size: 0.92rem;">🎉 Tug'ilgan kun tabrigi audiosi</div>
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">
             Telefon suhbati va sevimli qo'shiqni yuklang
           </div>
         </div>
-        <div style="font-size: 1.5rem;">🎵</div>
+        <div style="font-size: 1.3rem;">🎵</div>
       </div>
 
       <!-- Upload 1: Original Phone Call Recording -->
-      <div class="card">
+      <div class="card upload-card">
         <div class="card-title">
           <span>📞</span> 1. Telefon qo'ng'irog'i yozuvi
         </div>
@@ -49,18 +49,18 @@
         </div>
         <div class="upload-box" id="drop-original" onclick="document.getElementById('input-original').click()">
           <input type="file" id="input-original" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" style="display:none">
-          <div style="font-size: 1.8rem; margin-bottom: 6px;">🎙️</div>
-          <div style="font-weight: 600; font-size: 0.9rem;">Suhbat audiosini tanlang</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Maksimal hajm: 50MB</div>
+          <div style="font-size: 1.35rem; margin-bottom: 2px;">🎙️</div>
+          <div style="font-weight: 600; font-size: 0.85rem;">Suhbat audiosini tanlang</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Maksimal hajm: 50MB</div>
         </div>
-        <div id="file-info-original" class="file-chosen hidden">
-          <span id="filename-original" style="font-weight: 500; word-break: break-all;"></span>
-          <span style="color: var(--accent-emerald); font-weight: bold;">✓ Tanlandi</span>
+        <div id="file-info-original" class="file-chosen hidden" style="padding: 8px 10px; margin-top: 6px;">
+          <span id="filename-original" style="font-weight: 500; font-size: 0.8rem; word-break: break-all;"></span>
+          <span style="color: var(--accent-emerald); font-weight: bold; font-size: 0.8rem;">✓ Tanlandi</span>
         </div>
       </div>
 
       <!-- Upload 2: Special Music -->
-      <div class="card">
+      <div class="card upload-card">
         <div class="card-title">
           <span>🎶</span> 2. Sevimli musiqa / Qo'shiq
         </div>
@@ -69,13 +69,13 @@
         </div>
         <div class="upload-box" id="drop-special" onclick="document.getElementById('input-special').click()">
           <input type="file" id="input-special" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" style="display:none">
-          <div style="font-size: 1.8rem; margin-bottom: 6px;">🎼</div>
-          <div style="font-weight: 600; font-size: 0.9rem;">Qo'shiqni tanlang</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Maksimal hajm: 50MB</div>
+          <div style="font-size: 1.35rem; margin-bottom: 2px;">🎼</div>
+          <div style="font-weight: 600; font-size: 0.85rem;">Qo'shiqni tanlang</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Maksimal hajm: 50MB</div>
         </div>
-        <div id="file-info-special" class="file-chosen hidden">
-          <span id="filename-special" style="font-weight: 500; word-break: break-all;"></span>
-          <span style="color: var(--accent-emerald); font-weight: bold;">✓ Tanlandi</span>
+        <div id="file-info-special" class="file-chosen hidden" style="padding: 8px 10px; margin-top: 6px;">
+          <span id="filename-special" style="font-weight: 500; font-size: 0.8rem; word-break: break-all;"></span>
+          <span style="color: var(--accent-emerald); font-weight: bold; font-size: 0.8rem;">✓ Tanlandi</span>
         </div>
       </div>
 
@@ -240,11 +240,16 @@
     <!-- Page: Account Details -->
     <div id="page-account" class="tab-content hidden">
       <div class="card" style="text-align: center; padding: 25px 20px;">
-        <div style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-gold), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px; color: #fff; font-weight: bold;" id="acc-avatar">
-          👤
+        <div class="acc-avatar-wrapper" onclick="triggerProfilePhotoUpload()" title="Rasm yuklash yoki o'zgartirish">
+          <div id="acc-avatar" class="acc-avatar-img">👤</div>
+          <div class="acc-avatar-badge">📷</div>
         </div>
+        <input type="file" id="input-profile-photo" accept="image/*" style="display:none;" onchange="handleProfilePhotoSelected(event)">
         <div style="font-size: 1.2rem; font-weight: 700;" id="acc-name">Foydalanuvchi</div>
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;" id="acc-username">@username</div>
+        <div style="font-size: 0.72rem; color: var(--accent-gold); margin-top: 6px; cursor: pointer;" onclick="triggerProfilePhotoUpload()">
+          📷 Profil rasmini o'zgartirish
+        </div>
       </div>
 
       <div class="card">

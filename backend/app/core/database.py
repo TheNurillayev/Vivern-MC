@@ -46,6 +46,12 @@ async def init_db():
                 await conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {col_type}"))
             except Exception:
                 pass
+
+        # Safe column migration for users table
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN avatar_path VARCHAR(512)"))
+        except Exception:
+            pass
     await seed_default_library_assets()
 
 async def seed_default_library_assets():

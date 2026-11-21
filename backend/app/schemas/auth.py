@@ -12,6 +12,7 @@ class UserInfo(BaseModel):
     language_code: Optional[str] = "uz"
     trial_count: int
     is_admin: bool
+    avatar_url: Optional[str] = None
 
 class AuthResponse(BaseModel):
     success: bool

@@ -55,6 +55,12 @@ class Settings(BaseSettings):
         railway_vol = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
         if railway_vol and railway_vol.strip():
             p = Path(railway_vol.strip())
+        elif os.path.exists("/app/storage") and os.path.ismount("/app/storage"):
+            p = Path("/app/storage")
+        elif os.path.exists("/storage") and os.path.ismount("/storage"):
+            p = Path("/storage")
+        elif os.path.exists("/data") and os.path.ismount("/data"):
+            p = Path("/data")
         else:
             raw_storage = os.getenv("STORAGE_DIR", self.STORAGE_DIR)
             p = Path(raw_storage)
@@ -64,6 +70,7 @@ class Settings(BaseSettings):
         (p / "library").mkdir(exist_ok=True)
         (p / "uploads").mkdir(exist_ok=True)
         (p / "outputs").mkdir(exist_ok=True)
+        (p / "avatars").mkdir(exist_ok=True)
         return p
 
     @property
