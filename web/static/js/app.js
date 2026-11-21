@@ -557,6 +557,9 @@
     formData.append("special_music", specialFile);
 
     // Optional custom timings
+    const audioTitleInput = document.getElementById("input-audio-title")?.value?.trim();
+    if (audioTitleInput) formData.append("audio_title", audioTitleInput);
+
     const wStartInput = document.getElementById("input-wishes-start")?.value;
     const wEndInput = document.getElementById("input-wishes-end")?.value;
     const wStart = parseTimeStringToSeconds(wStartInput);
@@ -610,6 +613,7 @@
       if (wEndEl) wEndEl.value = "";
       document.getElementById("input-original").value = "";
       document.getElementById("input-special").value = "";
+      if (document.getElementById("input-audio-title")) document.getElementById("input-audio-title").value = "";
       if (document.getElementById("input-wishes-start")) document.getElementById("input-wishes-start").value = "";
       if (document.getElementById("input-wishes-end")) document.getElementById("input-wishes-end").value = "";
 
@@ -633,13 +637,16 @@
       .replace(/"/g, '&quot;');
   }
 
-  window.downloadOrderAudio = async function (orderId, btnEl) {
+  window.downloadOrderAudio = async function (orderId, btnEl, orderTitle = "") {
     const origHtml = btnEl ? btnEl.innerHTML : "";
     if (btnEl) {
       btnEl.innerHTML = "⏳ Yuklanmoqda...";
       btnEl.disabled = true;
     }
-    const fileName = `Vivern_MC_${orderId.substring(0, 8)}.mp3`;
+    const cleanTitle = (orderTitle && orderTitle.trim())
+      ? orderTitle.trim().replace(/[^\w\s-]/g, '').replace(/[-\s]+/g, '_')
+      : "";
+    const fileName = cleanTitle ? `${cleanTitle}.mp3` : `Vivern_MC_${orderId.substring(0, 8)}.mp3`;
     const dlUrl = `/api/orders/${orderId}/download`;
     const fullUrl = new URL(dlUrl, window.location.origin).href;
 
@@ -739,6 +746,16 @@
     }
   };
 
+  window.toggleOrderActionButtons = function (orderId) {
+    const row = document.getElementById(`order-actions-${orderId}`);
+    if (!row) return;
+    if (row.style.display === "none") {
+      row.style.display = "flex";
+    } else {
+      row.style.display = "none";
+    }
+  };
+
   let pollTimer = null;
   window.loadOrders = async function (isAutoPoll = false) {
     if (pollTimer) clearTimeout(pollTimer);
@@ -798,12 +815,23 @@
 
         return `
           <div class="card" style="margin-bottom: 12px; padding: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <div>
-                <div style="font-weight: 600; font-size: 0.95rem;">Buyurtma #${o.id.substring(0, 8)}</div>
+                ${o.audio_title ? `
+                  <div style="font-weight: 700; font-size: 0.95rem; color: var(--accent-gold); margin-bottom: 2px;">
+                    🏷️ ${escapeHtml(o.audio_title)}
+                  </div>
+                ` : ''}
+                <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-main);">Buyurtma #${o.id.substring(0, 8)}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">${dateStr}</div>
               </div>
-              ${statusBadge}
+              ${o.status === "completed" ? `
+                <button type="button" class="btn-order-pencil" onclick="toggleOrderActionButtons('${o.id}')" title="Amallar (Yuklab olish / O'chirish)">
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                  </svg>
+                </button>
+              ` : statusBadge}
             </div>
             <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px; width: 100%; overflow: hidden;">
               <div class="order-text-row">
@@ -816,11 +844,16 @@
             ${o.status === "completed" ? `
               <div style="margin-top: 10px;">
                 <audio controls src="${dlUrl}" style="width:100%; height:36px;"></audio>
-                <div style="font-size: 0.75rem; color: var(--accent-emerald); margin-top: 6px;">
-                  ✓ Telegram botingizga ham yuborildi
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <span style="font-size: 0.75rem; color: var(--accent-emerald);">
+                    ✓ Telegram botingizga ham yuborildi
+                  </span>
+                  <span class="badge-tag" style="background:var(--accent-emerald); font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:8px;">
+                    ✓ Tayyor
+                  </span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 10px;">
-                  <button type="button" onclick="downloadOrderAudio('${o.id}', this)" class="btn btn-secondary" style="flex: 1; padding: 8px 12px; font-size: 0.82rem; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; text-align: center;">
+                <div id="order-actions-${o.id}" class="order-action-buttons-row" style="display: none; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px;">
+                  <button type="button" onclick="downloadOrderAudio('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn btn-secondary" style="flex: 1; padding: 8px 12px; font-size: 0.82rem; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; text-align: center;">
                     ⬇️ MP3 Yuklab Olish
                   </button>
                   <button type="button" onclick="promptDeleteOrder('${o.id}')" class="btn btn-secondary" style="flex: 1; padding: 8px 12px; font-size: 0.82rem; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; cursor: pointer; text-align: center;">

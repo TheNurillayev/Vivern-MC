@@ -22,6 +22,7 @@ router = APIRouter(prefix="/api/orders", tags=["orders"])
 async def create_order(
     original_recording: UploadFile = File(...),
     special_music: UploadFile = File(...),
+    audio_title: Optional[str] = Form(None),
     custom_wishes_start_seconds: Optional[float] = Form(None),
     custom_call_ending_seconds: Optional[float] = Form(None),
     custom_starter_track_id: Optional[str] = Form(None),
@@ -102,6 +103,7 @@ async def create_order(
         id=order_id,
         user_id=user.id,
         status=initial_status,
+        audio_title=(audio_title.strip() if audio_title else "")[:200],
         original_recording_path=saved_orig_path,
         original_recording_name=original_recording.filename or "recording.mp3",
         special_music_path=saved_spec_path,
@@ -200,7 +202,14 @@ async def download_output_audio(
     if not order or not order.output_audio_path or not os.path.exists(order.output_audio_path):
         raise HTTPException(status_code=404, detail="Audio fayl hali tayyor emas yoki topilmadi")
 
-    filename = f"Vivern_MC_{order_id[:8]}.mp3"
+    import re
+    if order.audio_title and order.audio_title.strip():
+        safe_title = re.sub(r'[^\w\s-]', '', order.audio_title).strip()
+        safe_title = re.sub(r'[-\s]+', '_', safe_title)
+        filename = f"{safe_title}.mp3" if safe_title else f"Vivern_MC_{order_id[:8]}.mp3"
+    else:
+        filename = f"Vivern_MC_{order_id[:8]}.mp3"
+
     return FileResponse(
         order.output_audio_path,
         media_type="audio/mpeg",

@@ -135,12 +135,15 @@ async def handle_admin(message: types.Message):
         reply_markup=kb
     )
 
-async def send_delivery_audio(chat_id: int, audio_path: str, caption: str):
+async def send_delivery_audio(chat_id: int, audio_path: str, caption: str, title: str = None):
     """Deliver completed audio production directly into customer's chat."""
     audio_file = FSInputFile(audio_path)
-    return await bot.send_audio(
-        chat_id=chat_id,
-        audio=audio_file,
-        caption=caption,
-        parse_mode="Markdown"
-    )
+    kwargs = {
+        "chat_id": chat_id,
+        "audio": audio_file,
+        "caption": caption,
+        "parse_mode": "Markdown"
+    }
+    if title:
+        kwargs["title"] = title
+    return await bot.send_audio(**kwargs)

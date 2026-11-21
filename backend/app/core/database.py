@@ -36,6 +36,7 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
         # Safe column migrations for orders table
         for col, col_type in [
+            ("audio_title", "VARCHAR(255) DEFAULT ''"),
             ("custom_wishes_start_seconds", "FLOAT"),
             ("custom_call_ending_seconds", "FLOAT"),
             ("custom_starter_track_id", "VARCHAR(36)"),

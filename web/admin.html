@@ -538,8 +538,8 @@
       <div class="user-profile-avatar-lg" id="fp-avatar">U</div>
       <div style="font-size: 1.25rem; font-weight: 700;" id="fp-fullname">Foydalanuvchi</div>
       <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;" id="fp-username">@username</div>
-      <div style="margin-top: 10px; display:flex; justify-content:center; gap:8px;">
-        <span class="badge-tag" id="fp-id-badge">ID: ...</span>
+      <div style="margin-top: 10px; display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span id="fp-id-badge" style="display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); color:#cbd5e1; font-size:0.76rem; font-weight:500; font-family:monospace;">ID: ...</span>
         <span id="fp-role-badge"></span>
       </div>
     </div>
@@ -1086,13 +1086,13 @@
       }
       document.getElementById("fp-fullname").textContent = fullName;
       document.getElementById("fp-username").textContent = user.username ? `@${user.username}` : "username yo'q";
-      document.getElementById("fp-id-badge").textContent = `Telegram ID: ${user.id}`;
+      document.getElementById("fp-id-badge").innerHTML = `🆔 ID: <span style="color:#fff; font-weight:600;">${user.id}</span>`;
 
       const roleBadgeEl = document.getElementById("fp-role-badge");
       if (user.is_admin) {
-        roleBadgeEl.innerHTML = `<span class="badge-tag" style="background:rgba(245, 158, 11, 0.2); color:var(--accent-gold); border:1px solid rgba(245, 158, 11, 0.4);">ADMINISTRATOR</span>`;
+        roleBadgeEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:12px; background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.35); color:var(--accent-gold); font-size:0.76rem; font-weight:600; letter-spacing:0.3px;">👑 Administrator</span>`;
       } else {
-        roleBadgeEl.innerHTML = `<span class="badge-tag" style="background:rgba(255, 255, 255, 0.08); color:var(--text-muted);">FOYDALANUVCHI</span>`;
+        roleBadgeEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:12px; background:rgba(255, 255, 255, 0.05); border:1px solid rgba(255, 255, 255, 0.12); color:var(--text-muted); font-size:0.76rem; font-weight:500;">👤 Foydalanuvchi</span>`;
       }
 
       const used = user.trial_count || 0;

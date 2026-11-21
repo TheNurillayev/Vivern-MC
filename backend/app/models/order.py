@@ -14,6 +14,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(32), default="draft", index=True)
 
     # Input file paths
+    audio_title: Mapped[str] = mapped_column(String(255), default="")
     original_recording_path: Mapped[str] = mapped_column(String(512), default="")
     original_recording_name: Mapped[str] = mapped_column(String(255), default="")
     special_music_path: Mapped[str] = mapped_column(String(512), default="")

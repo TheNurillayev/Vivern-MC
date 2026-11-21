@@ -163,8 +163,10 @@ async def process_single_order(order_id: str):
             await session.commit()
 
             # Stage 5: Telegram Delivery
+            title_text = f"🏷️ *Nomi:* {order.audio_title}\n" if (order.audio_title and order.audio_title.strip()) else ""
             caption = (
                 f"🎉 *Sizning tabrik audio montajingiz tayyor!*\n\n"
+                f"{title_text}"
                 f"🆔 Buyurtma: `#{order.id[:8]}`\n"
                 f"⏱ Davomiyligi: {round(order.output_audio_duration, 1)} soniya\n\n"
                 f"Tug'ilgan kun egasini chiroyli tabriklashingizda omad tilaymiz! 🎂🎶"
@@ -174,7 +176,8 @@ async def process_single_order(order_id: str):
                 msg = await send_delivery_audio(
                     chat_id=order.user_id,
                     audio_path=order.output_audio_path,
-                    caption=caption
+                    caption=caption,
+                    title=order.audio_title if (order.audio_title and order.audio_title.strip()) else f"Vivern MC - #{order.id[:8]}"
                 )
                 if msg:
                     order.delivered_to_telegram = True

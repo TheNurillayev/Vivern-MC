@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class OrderCreateResponse(BaseModel):
     id: str
     status: str
+    audio_title: Optional[str] = ""
     original_recording_name: str
     special_music_name: str
     price_som: int
@@ -17,6 +18,7 @@ class OrderCreateResponse(BaseModel):
 class OrderDetailResponse(BaseModel):
     id: str
     status: str
+    audio_title: Optional[str] = ""
     original_recording_name: str
     special_music_name: str
     output_audio_duration: float
