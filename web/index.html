@@ -29,13 +29,8 @@
 
     <!-- Page: Create Audio -->
     <div id="page-create" class="tab-content">
-      <div class="status-banner" style="padding: 10px 14px; margin-bottom: 12px;">
-        <div>
-          <div style="font-weight: 600; font-size: 0.92rem;">🎉 Tug'ilgan kun tabrigi audiosi</div>
-          <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">
-            Telefon suhbati va sevimli qo'shiqni yuklang
-          </div>
-        </div>
+      <div class="status-banner" style="padding: 12px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-weight: 700; font-size: 0.95rem;">🎉 Tug'ilgan kun tabriklari</div>
         <div style="font-size: 1.3rem;">🎵</div>
       </div>
 
@@ -239,17 +234,31 @@
 
     <!-- Page: Account Details -->
     <div id="page-account" class="tab-content hidden">
-      <div class="card" style="text-align: center; padding: 25px 20px;">
-        <div class="acc-avatar-wrapper" onclick="triggerProfilePhotoUpload()" title="Rasm yuklash yoki o'zgartirish">
+      <div class="card" style="position: relative; text-align: center; padding: 25px 20px;">
+        <!-- Pencil Edit Button (Top Right) -->
+        <button type="button" class="btn-profile-edit" onclick="toggleProfileEditMenu(event)" title="Profilni tahrirlash">
+          ✏️
+        </button>
+
+        <!-- Dropdown Menu (Image 2) -->
+        <div id="profile-edit-menu" class="profile-edit-dropdown hidden">
+          <div class="profile-edit-item" onclick="openFullProfilePhoto()">
+            <span>🖼️</span> Rasmni ko'rish
+          </div>
+          <div class="profile-edit-item" onclick="triggerProfilePhotoUpload()">
+            <span>📷</span> Rasmni o'zgartirish
+          </div>
+          <div class="profile-edit-item" onclick="openChangeNameModal()">
+            <span>✏️</span> Ismni o'zgartirish
+          </div>
+        </div>
+
+        <div class="acc-avatar-wrapper" onclick="openFullProfilePhoto()" title="Profil rasmi">
           <div id="acc-avatar" class="acc-avatar-img">👤</div>
-          <div class="acc-avatar-badge">📷</div>
         </div>
         <input type="file" id="input-profile-photo" accept="image/*" style="display:none;" onchange="handleProfilePhotoSelected(event)">
         <div style="font-size: 1.2rem; font-weight: 700;" id="acc-name">Foydalanuvchi</div>
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;" id="acc-username">@username</div>
-        <div style="font-size: 0.72rem; color: var(--accent-gold); margin-top: 6px; cursor: pointer;" onclick="triggerProfilePhotoUpload()">
-          📷 Profil rasmini o'zgartirish
-        </div>
       </div>
 
       <div class="card">
@@ -291,6 +300,48 @@
       <div style="display: flex; gap: 10px;">
         <button class="btn btn-secondary" style="flex: 1;" onclick="closeConfirmModal()">Bekor qilish</button>
         <button class="btn btn-primary" style="flex: 1.2;" onclick="proceedSubmitAudioOrder()">Tayyorlashni boshlash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: View Profile Photo (Open photo) -->
+  <div id="modal-view-photo" class="modal-overlay hidden" onclick="if(event.target === this) closeViewPhotoModal()">
+    <div style="position: relative; max-width: 90vw; max-height: 85vh; text-align: center;">
+      <button onclick="closeViewPhotoModal()" style="position: absolute; top: -14px; right: -14px; width: 36px; height: 36px; border-radius: 50%; background: #222; border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
+      <img id="view-photo-img" src="" alt="Profil rasmi" style="max-width: 85vw; max-height: 75vh; border-radius: 16px; object-fit: contain; box-shadow: 0 15px 35px rgba(0,0,0,0.8); border: 2px solid rgba(255,255,255,0.15);">
+    </div>
+  </div>
+
+  <!-- Modal: Change Profile Name -->
+  <div id="modal-change-name" class="modal-overlay hidden" onclick="if(event.target === this) closeChangeNameModal()">
+    <div class="modal-card" style="text-align: left;">
+      <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 6px; color: var(--text-main);">✏️ Ismni o'zgartirish</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">Yangi ismingizni kiriting:</div>
+      <input 
+        type="text" 
+        id="input-change-name" 
+        style="width: 100%; padding: 11px 13px; margin-bottom: 18px; border-radius: 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; font-size: 0.95rem; box-sizing: border-box;" 
+        placeholder="Ismingiz..."
+        onkeydown="if(event.key === 'Enter') submitChangeName()"
+      />
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button onclick="closeChangeNameModal()" class="btn btn-secondary" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">Bekor qilish</button>
+        <button onclick="submitChangeName()" class="btn btn-primary" style="width: auto; padding: 8px 18px; font-size: 0.85rem; font-weight: 700;">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Delete Order Confirmation (Image 4) -->
+  <div id="modal-delete-order" class="modal-overlay hidden" onclick="if(event.target === this) closeDeleteOrderModal()">
+    <div class="modal-card">
+      <div style="font-size: 2.2rem; margin-bottom: 8px;">🗑️</div>
+      <div style="font-weight: 700; font-size: 1.15rem; margin-bottom: 6px;">Buyurtmani o'chirish</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+        Haqiqatan ham ushbu buyurtmani o'chirib tashlamoqchimisiz?
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteOrderModal()">Bekor qilish</button>
+        <button id="btn-confirm-delete-order" class="btn" style="flex: 1; background: var(--danger-color); color: #fff; font-weight: 700;" onclick="confirmDeleteOrder()">O'chirish</button>
       </div>
     </div>
   </div>

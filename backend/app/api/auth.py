@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
+from pydantic import BaseModel
 from backend.app.core.database import get_db
 from backend.app.core.config import settings
 from backend.app.core.security import verify_telegram_init_data, is_admin_user
@@ -229,3 +230,29 @@ async def get_user_avatar(
         media_type=media_type,
         headers={"Cache-Control": "public, max-age=86400"}
     )
+
+class UpdateProfileNameRequest(BaseModel):
+    first_name: str
+    last_name: Optional[str] = ""
+
+@router.patch("/profile/name")
+async def update_profile_name(
+    req: UpdateProfileNameRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    clean_first = req.first_name.strip()
+    if not clean_first:
+        raise HTTPException(status_code=400, detail="Ism bo'sh bo'lishi mumkin emas")
+
+    current_user.first_name = clean_first
+    if req.last_name is not None:
+        current_user.last_name = req.last_name.strip()
+
+    await db.commit()
+    await db.refresh(current_user)
+    return {
+        "success": True,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name
+    }

@@ -217,7 +217,7 @@ main {
   border-radius: 12px !important;
 }
 
-/* Profile Avatar Upload */
+/* Profile Avatar */
 .acc-avatar-wrapper {
   position: relative;
   width: 76px;
@@ -246,21 +246,63 @@ main {
 .acc-avatar-wrapper:hover .acc-avatar-img {
   transform: scale(1.03);
 }
-.acc-avatar-badge {
+
+/* Profile Edit Pencil Button */
+.btn-profile-edit {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 26px;
-  height: 26px;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: var(--accent-gold);
-  color: #000;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  border: 2px solid var(--bg-card);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+.btn-profile-edit:hover, .btn-profile-edit:active {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: var(--accent-gold);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+/* Profile Edit Dropdown Menu (Image 2) */
+.profile-edit-dropdown {
+  position: absolute;
+  top: 52px;
+  right: 14px;
+  background: #181b29;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  padding: 6px;
+  z-index: 25;
+  min-width: 175px;
+  text-align: left;
+  backdrop-filter: blur(10px);
+}
+.profile-edit-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.profile-edit-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent-gold);
 }
 
 /* Order text truncation for mobile */

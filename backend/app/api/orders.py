@@ -210,3 +210,29 @@ async def download_output_audio(
         }
     )
 
+@router.delete("/{order_id}")
+async def delete_order(
+    order_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(Order).where(Order.id == order_id))
+    order = res.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Buyurtma topilmadi")
+
+    if order.user_id != user.id and not user.is_admin:
+        raise HTTPException(status_code=403, detail="Ruxsat berilmadi: siz bu buyurtma egasi emassiz")
+
+    # Clean up physical files from disk
+    for f_path in [order.original_recording_path, order.special_music_path, order.output_audio_path]:
+        if f_path and os.path.exists(f_path):
+            try:
+                os.remove(f_path)
+            except Exception:
+                pass
+
+    await db.delete(order)
+    await db.commit()
+    return {"success": True, "message": "Buyurtma muvaffaqiyatli o'chirildi"}
+

@@ -92,7 +92,102 @@
     }
   }
 
+  window.toggleProfileEditMenu = function (e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById("profile-edit-menu");
+    if (menu) menu.classList.toggle("hidden");
+  };
+
+  document.addEventListener("click", (e) => {
+    const menu = document.getElementById("profile-edit-menu");
+    if (menu && !menu.classList.contains("hidden")) {
+      if (!e.target.closest("#profile-edit-menu") && !e.target.closest(".btn-profile-edit")) {
+        menu.classList.add("hidden");
+      }
+    }
+  });
+
+  window.openFullProfilePhoto = function () {
+    const menu = document.getElementById("profile-edit-menu");
+    if (menu) menu.classList.add("hidden");
+
+    if (!currentUser || !currentUser.avatar_url) {
+      alert("Siz hali profil rasmi yuklamagansiz. 📷 Rasmni o'zgartirish orqali rasm yuklashingiz mumkin.");
+      return;
+    }
+    const modal = document.getElementById("modal-view-photo");
+    const img = document.getElementById("view-photo-img");
+    if (img) img.src = currentUser.avatar_url;
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeViewPhotoModal = function () {
+    const modal = document.getElementById("modal-view-photo");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  window.openChangeNameModal = function () {
+    const menu = document.getElementById("profile-edit-menu");
+    if (menu) menu.classList.add("hidden");
+
+    const modal = document.getElementById("modal-change-name");
+    const input = document.getElementById("input-change-name");
+    if (input) {
+      input.value = (currentUser?.first_name || "").trim();
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 60);
+    }
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeChangeNameModal = function () {
+    const modal = document.getElementById("modal-change-name");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  window.submitChangeName = async function () {
+    const input = document.getElementById("input-change-name");
+    const newName = input.value.trim();
+    if (!newName) {
+      alert("Iltimos, ismingizni kiriting!");
+      return;
+    }
+
+    try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
+      const res = await fetch("/api/auth/profile/name", {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${activeToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ first_name: newName })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Ismni o'zgartirib bo'lmadi");
+
+      currentUser.first_name = data.first_name;
+      renderUserProfile();
+      closeChangeNameModal();
+      if (window.Telegram?.WebApp?.showPopup) {
+        window.Telegram.WebApp.showPopup({
+          title: "Muvaffaqiyatli",
+          message: "Ismingiz muvaffaqiyatli saqlandi!",
+          buttons: [{ type: "ok" }]
+        });
+      } else {
+        alert("✅ Ismingiz muvaffaqiyatli saqlandi!");
+      }
+    } catch (err) {
+      alert("Xatolik: " + err.message);
+    }
+  };
+
   window.triggerProfilePhotoUpload = function () {
+    const menu = document.getElementById("profile-edit-menu");
+    if (menu) menu.classList.add("hidden");
     const input = document.getElementById("input-profile-photo");
     if (input) input.click();
   };
@@ -597,6 +692,53 @@
     }
   };
 
+  let orderPendingDelete = null;
+
+  window.promptDeleteOrder = function (orderId) {
+    orderPendingDelete = orderId;
+    const modal = document.getElementById("modal-delete-order");
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeDeleteOrderModal = function () {
+    orderPendingDelete = null;
+    const modal = document.getElementById("modal-delete-order");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  window.confirmDeleteOrder = async function () {
+    if (!orderPendingDelete) return;
+    const btn = document.getElementById("btn-confirm-delete-order");
+    const origText = btn ? btn.textContent : "O'chirish";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "O'chirilmoqda...";
+    }
+
+    try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
+      const res = await fetch(`/api/orders/${orderPendingDelete}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${activeToken}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Buyurtmani o'chirib bo'lmadi");
+
+      closeDeleteOrderModal();
+      await loadOrders(false);
+      if (typeof loadUserProfile === "function") {
+        await loadUserProfile();
+      }
+    } catch (err) {
+      alert("Xatolik: " + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
+    }
+  };
+
   let pollTimer = null;
   window.loadOrders = async function (isAutoPoll = false) {
     if (pollTimer) clearTimeout(pollTimer);
@@ -674,16 +816,25 @@
             ${o.status === "completed" ? `
               <div style="margin-top: 10px;">
                 <audio controls src="${dlUrl}" style="width:100%; height:36px;"></audio>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; flex-wrap: wrap;">
-                  <span style="font-size: 0.75rem; color: var(--accent-emerald);">
-                    ✓ Telegram botingizga ham yuborildi
-                  </span>
-                  <button type="button" onclick="downloadOrderAudio('${o.id}', this)" class="btn btn-secondary" style="width:auto; padding:7px 14px; font-size:0.8rem; border-radius:10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; flex-shrink: 0;">
+                <div style="font-size: 0.75rem; color: var(--accent-emerald); margin-top: 6px;">
+                  ✓ Telegram botingizga ham yuborildi
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 10px;">
+                  <button type="button" onclick="downloadOrderAudio('${o.id}', this)" class="btn btn-secondary" style="flex: 1; padding: 8px 12px; font-size: 0.82rem; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; text-align: center;">
                     ⬇️ MP3 Yuklab Olish
+                  </button>
+                  <button type="button" onclick="promptDeleteOrder('${o.id}')" class="btn btn-secondary" style="flex: 1; padding: 8px 12px; font-size: 0.82rem; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; cursor: pointer; text-align: center;">
+                    🗑️ O'chirish
                   </button>
                 </div>
               </div>
-            ` : ""}
+            ` : `
+              <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                <button type="button" onclick="promptDeleteOrder('${o.id}')" class="btn btn-secondary" style="width: auto; padding: 5px 12px; font-size: 0.78rem; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; cursor: pointer;">
+                  🗑️ O'chirish
+                </button>
+              </div>
+            `}
             ${hasActiveOrders ? `
               <div style="font-size: 0.75rem; color: var(--accent-gold); margin-top: 6px; display:flex; align-items:center; gap:6px;">
                 <span class="spinner" style="width:14px; height:14px; border-width:2px;"></span>
