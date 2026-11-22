@@ -97,7 +97,7 @@
     const fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() || "Foydalanuvchi";
 
     if (accName) accName.textContent = fullName;
-    if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : "";
+    if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : `ID: ${currentUser.id}`;
     if (accCoins) accCoins.textContent = `${userCoins} Tanga`;
 
     // Dynamic icon: ⚡ when active, 🔋 when paused/inactive (Image 5)
@@ -448,19 +448,25 @@
     document.querySelectorAll(".coin-pkg-card").forEach(c => c.classList.remove("selected"));
     if (el) el.classList.add("selected");
 
-    const tgLink = document.getElementById("btn-send-receipt-tg");
-    if (tgLink) {
-      const uId = currentUser ? currentUser.id : "";
-      const text = `Assalomu alaykum! Vivern MC da ${name} uchun to'lov qildim. Mening ID: ${uId}`;
-      tgLink.href = `https://t.me/TheNurillayev?text=${encodeURIComponent(text)}`;
-    }
+    const selectEl = document.getElementById("receipt-package-select");
+    if (selectEl) selectEl.value = String(coins);
+  };
+
+  window.onReceiptDropdownChange = function (selectEl) {
+    const opt = selectEl.options[selectEl.selectedIndex];
+    const coins = parseInt(opt.value, 10);
+    const price = parseInt(opt.getAttribute("data-price"), 10);
+    const name = opt.getAttribute("data-name");
+    selectedCoinPackage = { coins, price, name };
+
+    document.querySelectorAll(".coin-pkg-card").forEach(c => c.classList.remove("selected"));
+    const card = document.getElementById("pkg-" + coins);
+    if (card) card.classList.add("selected");
   };
 
   window.copyCardNumber = function () {
-    const cardEl = document.getElementById("coin-card-number");
+    const cardNum = "4097830011461668";
     const copyBtn = document.getElementById("btn-copy-card");
-    if (!cardEl) return;
-    const cardNum = cardEl.textContent.replace(/\s+/g, "");
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(cardNum).then(() => {
         if (copyBtn) {
@@ -475,32 +481,114 @@
     }
   };
 
-  window.notifyPaymentMade = async function () {
-    const btn = document.getElementById("btn-notify-paid");
-    if (btn) btn.disabled = true;
+  // Receipt File Attachment & Submission (Image 2 - Item 3)
+  let attachedReceiptFile = null;
+
+  window.openReceiptChoiceModal = function () {
+    const modal = document.getElementById("modal-receipt-choice");
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeReceiptChoiceModal = function () {
+    const modal = document.getElementById("modal-receipt-choice");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  window.triggerReceiptInput = function (type) {
+    closeReceiptChoiceModal();
+    if (type === "gallery") {
+      document.getElementById("input-receipt-gallery")?.click();
+    } else if (type === "document") {
+      document.getElementById("input-receipt-document")?.click();
+    }
+  };
+
+  window.handleReceiptSelected = function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    attachedReceiptFile = file;
+
+    document.getElementById("receipt-upload-box")?.classList.add("hidden");
+    const badge = document.getElementById("receipt-file-badge");
+    if (badge) badge.classList.remove("hidden");
+
+    const nameEl = document.getElementById("receipt-file-name");
+    const sizeEl = document.getElementById("receipt-file-size");
+    if (nameEl) nameEl.textContent = file.name;
+    if (sizeEl) {
+      const sizeKb = (file.size / 1024).toFixed(0);
+      sizeEl.textContent = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + " MB" : sizeKb + " KB";
+    }
+
+    // Light up submit button
+    const btn = document.getElementById("btn-submit-receipt-final");
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+      btn.style.boxShadow = "0 4px 15px rgba(245, 158, 11, 0.4)";
+    }
+  };
+
+  window.removeReceiptFile = function () {
+    attachedReceiptFile = null;
+    const galInput = document.getElementById("input-receipt-gallery");
+    const docInput = document.getElementById("input-receipt-document");
+    if (galInput) galInput.value = "";
+    if (docInput) docInput.value = "";
+
+    document.getElementById("receipt-file-badge")?.classList.add("hidden");
+    document.getElementById("receipt-upload-box")?.classList.remove("hidden");
+
+    const btn = document.getElementById("btn-submit-receipt-final");
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = "0.45";
+      btn.style.cursor = "not-allowed";
+      btn.style.boxShadow = "none";
+    }
+  };
+
+  window.submitReceiptToAdmin = async function () {
+    if (!attachedReceiptFile) {
+      alert("Iltimos, avval to'lov cheki faylini yuklang!");
+      return;
+    }
+
+    const btn = document.getElementById("btn-submit-receipt-final");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "⏳ Chek yuborilmoqda...";
+    }
 
     try {
       const activeToken = authToken || sessionStorage.getItem("vivern_token");
-      const res = await fetch("/api/auth/coins/notify-payment", {
+      const formData = new FormData();
+      formData.append("file", attachedReceiptFile);
+      formData.append("package_name", selectedCoinPackage.name);
+      formData.append("coins", selectedCoinPackage.coins);
+      formData.append("amount_som", selectedCoinPackage.price);
+
+      const res = await fetch("/api/auth/coins/submit-receipt", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${activeToken}`,
-          "Content-Type": "application/json"
+          "Authorization": `Bearer ${activeToken}`
         },
-        body: JSON.stringify({
-          package_name: selectedCoinPackage.name,
-          coins: selectedCoinPackage.coins,
-          amount_som: selectedCoinPackage.price
-        })
+        body: formData
       });
-      if (!res.ok) throw new Error("Xabar yuborishda xatolik");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Chekni yuborib bo'lmadi");
 
-      alert("✅ To'lov haqida xabar adminga yetkazildi!\n\nAdministrator to'lovni tasdiqlashi bilan hisobingizga " + selectedCoinPackage.coins + " ta tanga qo'shiladi.");
+      alert("✅ To'lov chekingiz muvaffaqiyatli adminga yetkazildi!\n\nAdministrator tekshirib, hisobingizga " + selectedCoinPackage.coins + " ta tangani tez orada qo'shib beradi.");
+      removeReceiptFile();
       closeCoinBalanceModal();
-    } catch (e) {
-      alert("Xatolik: " + e.message);
+    } catch (err) {
+      alert("Xatolik: " + err.message);
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "🚀 Yuborish";
+      }
     }
   };
 

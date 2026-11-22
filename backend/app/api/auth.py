@@ -4,7 +4,7 @@ import hmac
 import hashlib
 import os
 import time
-from fastapi import APIRouter, Depends, HTTPException, Header, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Header, Query, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -352,3 +352,56 @@ async def notify_coin_payment(
         pass
 
     return {"success": True, "message": "Admin bildirishnoma qabul qildi"}
+
+@router.post("/coins/submit-receipt")
+async def submit_coin_receipt(
+    file: UploadFile = File(...),
+    package_name: str = Form(...),
+    coins: int = Form(...),
+    amount_som: int = Form(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Uploads receipt file and sends structured notification with document/photo to admin via bot."""
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="Chek fayli yuklanmadi")
+
+    receipts_dir = settings.storage_path / "receipts"
+    receipts_dir.mkdir(parents=True, exist_ok=True)
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    ts = int(time.time())
+    saved_filename = f"receipt_{current_user.id}_{ts}{ext}"
+    saved_path = receipts_dir / saved_filename
+
+    with open(saved_path, "wb") as buffer:
+        while chunk := await file.read(1024 * 64):
+            buffer.write(chunk)
+
+    is_image = ext in [".jpg", ".jpeg", ".png", ".webp"]
+    user_name = f"{current_user.first_name} {current_user.last_name or ''}".strip()
+    tg_handle = f"@{current_user.username}" if current_user.username else f"ID: {current_user.id}"
+
+    import datetime
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    caption = (
+        f"🧾 *YANGI TO'LOV CHEKI KELDI!*\n\n"
+        f"👤 *Foydalanuvchi:* {user_name} ({tg_handle})\n"
+        f"🆔 *Telegram ID:* `{current_user.id}`\n"
+        f"📦 *Tanlangan tarif:* {package_name}\n"
+        f"🪙 *Qo'shilishi kerak:* +{coins} Tanga\n"
+        f"💵 *To'lov summasi:* {amount_som:,} so'm\n"
+        f"📅 *Sana:* {now_str}\n\n"
+        f"_Admin panel orqali foydalanuvchiga tangalarni tasdiqlab berishingiz mumkin._"
+    )
+
+    try:
+        from backend.app.bot.bot import send_receipt_to_admins
+        await send_receipt_to_admins(str(saved_path), caption, is_image=is_image)
+    except Exception as e:
+        import logging
+        logging.getLogger("vivern-auth").error(f"Failed to send receipt to admin: {e}")
+
+    return {
+        "success": True,
+        "message": "To'lov cheki administratorga muvaffaqiyatli yetkazildi"
+    }

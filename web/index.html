@@ -284,7 +284,7 @@
 
     <!-- Page: Account Details -->
     <div id="page-account" class="tab-content hidden">
-      <div class="card" style="position: relative; text-align: center; padding: 25px 20px;">
+      <div class="card" style="position: relative; text-align: center; padding: 22px 20px; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box;">
         <!-- Vertical Actions Stack: Pencil, Gift, Settings, Balance (Images 2 & 4) -->
         <div class="profile-actions-stack">
           <button type="button" class="btn-profile-action" onclick="toggleProfileEditMenu(event)" title="Profilni tahrirlash">
@@ -622,14 +622,14 @@
         </div>
       </div>
 
-      <!-- Payment Instructions & Card Details -->
+      <!-- Payment Instructions & Card Details (Image 2) -->
       <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
         <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;">
           💳 Karta orqali to'lov uchun rekvizitlar:
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.06); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px;">
           <div>
-            <div style="font-family: monospace; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 1px;" id="coin-card-number">9860 0301 2345 6789</div>
+            <div style="font-family: monospace; font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: 1px;" id="coin-card-number">4097 8300 1146 1668</div>
             <div style="font-size: 0.72rem; color: var(--text-muted);">Eldor N. (Administrator)</div>
           </div>
           <button type="button" onclick="copyCardNumber()" class="btn-sm" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 4px 10px; font-size: 0.75rem;" id="btn-copy-card">
@@ -637,24 +637,95 @@
           </button>
         </div>
         <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.4;">
-          Tanlangan summa bo'yicha kartaga to'lov qiling va chekni yuboring. Tangalar hisobingizga darhol tasdiqlab beriladi.
+          Belgilangan summa bo'yicha yuqoridagi kartaga to'lov qiling va to'lov chekini quyida yuklang.
         </div>
       </div>
 
-      <!-- Actions -->
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <a id="btn-send-receipt-tg" href="https://t.me/TheNurillayev" target="_blank" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; padding: 11px; font-size: 0.88rem; font-weight: 700;">
-          ✈️ Chekni Yuborish (Telegram @TheNurillayev)
-        </a>
-        <button type="button" onclick="notifyPaymentMade()" id="btn-notify-paid" class="btn btn-secondary" style="padding: 10px; font-size: 0.84rem;">
-          📩 To'lov qildim (Adminni xabardor qilish)
+      <!-- Receipt Upload & Submission Form (Image 2 - Item 3) -->
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 14px;">
+        <div style="font-weight: 700; font-size: 0.95rem; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 7px;">
+          <span>🧾</span> To'lov chekini yuborish
+        </div>
+
+        <!-- 1. Dropdown for Tariff Selection -->
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 5px;">
+            To'langan tarifni tasdiqlang:
+          </label>
+          <select id="receipt-package-select" onchange="onReceiptDropdownChange(this)" style="width: 100%; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; font-size: 0.88rem; box-sizing: border-box;">
+            <option value="10" data-price="5000" data-name="10 Tanga (1 ta buyurtma)" selected>🪙 10 Tanga — 5,000 so'm</option>
+            <option value="30" data-price="14000" data-name="30 Tanga (3 ta buyurtma)">🪙 30 Tanga — 14,000 so'm (-7%)</option>
+            <option value="50" data-price="22000" data-name="50 Tanga (5 ta buyurtma)">🪙 50 Tanga — 22,000 so'm (-12%)</option>
+            <option value="100" data-price="40000" data-name="100 Tanga (10 ta buyurtma)">👑 100 Tanga — 40,000 so'm (VIP -20%)</option>
+          </select>
+        </div>
+
+        <!-- 2. Receipt File Upload Button -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 5px;">
+            To'lov cheki fayli:
+          </label>
+          
+          <div id="receipt-upload-box">
+            <button type="button" onclick="openReceiptChoiceModal()" class="btn btn-secondary" style="width: 100%; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem; border: 1px dashed rgba(255,255,255,0.25);">
+              <span>📎</span> Chek faylini yuklash
+            </button>
+          </div>
+
+          <!-- File Attached Display -->
+          <div id="receipt-file-badge" class="hidden" style="padding: 10px 12px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+              <span style="font-size: 1.3rem;">📄</span>
+              <div style="min-width: 0;">
+                <div id="receipt-file-name" style="font-size: 0.84rem; font-weight: 600; color: #fff; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">chek.jpg</div>
+                <div id="receipt-file-size" style="font-size: 0.72rem; color: var(--text-muted);">120 KB</div>
+              </div>
+            </div>
+            <button type="button" onclick="removeReceiptFile()" style="background: none; border: none; color: #fca5a5; font-size: 1.2rem; cursor: pointer; padding: 4px;" title="O'chirish">✕</button>
+          </div>
+        </div>
+
+        <!-- 3. Submit Button (Lights up when receipt is attached) -->
+        <button type="button" id="btn-submit-receipt-final" onclick="submitReceiptToAdmin()" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700; font-size: 0.92rem; opacity: 0.45; cursor: not-allowed; transition: all 0.2s ease;" disabled>
+          🚀 Yuborish
         </button>
+      </div>
+
+      <!-- Actions -->
+      <div style="text-align: center;">
         <button type="button" onclick="closeCoinBalanceModal()" class="btn" style="background: transparent; color: var(--text-muted); font-size: 0.82rem; padding: 6px;">
           Yopish
         </button>
       </div>
     </div>
   </div>
+
+  <!-- Modal: Choice for Receipt Upload ("Rasmlar / Fayllar") -->
+  <div id="modal-receipt-choice" class="modal-overlay hidden" onclick="if(event.target === this) closeReceiptChoiceModal()" style="z-index: 9999999;">
+    <div class="modal-card" style="max-width: 320px; text-align: center; padding: 22px 18px;">
+      <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 14px; color: #fff;">
+        Chek faylini tanlang
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button type="button" onclick="triggerReceiptInput('gallery')" class="btn btn-secondary" style="flex: 1; padding: 16px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 12px;">
+          <span style="font-size: 2rem;">🖼️</span>
+          <span style="font-weight: 700; font-size: 0.88rem;">Rasmlar</span>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">(Galereya)</span>
+        </button>
+        <button type="button" onclick="triggerReceiptInput('document')" class="btn btn-secondary" style="flex: 1; padding: 16px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 12px;">
+          <span style="font-size: 2rem;">📁</span>
+          <span style="font-weight: 700; font-size: 0.88rem;">Fayllar</span>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">(Hujjatlar)</span>
+        </button>
+      </div>
+      <div style="margin-top: 14px;">
+        <button type="button" onclick="closeReceiptChoiceModal()" class="btn" style="background: transparent; color: var(--text-muted); font-size: 0.82rem; padding: 6px;">Bekor qilish</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="input-receipt-gallery" accept="image/*" style="display:none;" onchange="handleReceiptSelected(event)">
+  <input type="file" id="input-receipt-document" accept="*/*,.pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="handleReceiptSelected(event)">
 
   <!-- Modal: Completed Orders List (Minimal: Title & Date Only - Item 1) -->
   <div id="modal-completed-orders-list" class="modal-overlay hidden" onclick="if(event.target === this) closeCompletedOrdersModal()">

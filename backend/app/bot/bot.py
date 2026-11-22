@@ -147,3 +147,15 @@ async def send_delivery_audio(chat_id: int, audio_path: str, caption: str, title
     if title:
         kwargs["title"] = title
     return await bot.send_audio(**kwargs)
+
+async def send_receipt_to_admins(file_path: str, caption: str, is_image: bool = True):
+    """Deliver payment receipt directly into administrators' chats."""
+    doc = FSInputFile(file_path)
+    for admin_id in settings.admin_ids:
+        try:
+            if is_image:
+                await bot.send_photo(chat_id=admin_id, photo=doc, caption=caption, parse_mode="Markdown")
+            else:
+                await bot.send_document(chat_id=admin_id, document=doc, caption=caption, parse_mode="Markdown")
+        except Exception as e:
+            logger.error(f"Error sending receipt to admin {admin_id}: {e}")
