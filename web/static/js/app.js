@@ -426,7 +426,7 @@
   };
 
   // Selected coin package state
-  let selectedCoinPackage = { coins: 10, price: 5000, name: "10 Tanga (1 ta buyurtma)" };
+  let selectedCoinPackage = { coins: 10, price: 5000, name: "10 Tanga" };
 
   // Modal: Coin Balance & Top-up (Images 1, 4 & 5)
   window.openCoinBalanceModal = function () {
@@ -441,6 +441,24 @@
   window.closeCoinBalanceModal = function () {
     const modal = document.getElementById("modal-coin-balance");
     if (modal) modal.classList.add("hidden");
+  };
+
+  window.toggleOtherPackages = function () {
+    const container = document.getElementById("container-other-packages");
+    const arrow = document.getElementById("other-packages-arrow");
+    const label = document.getElementById("other-packages-label");
+    if (!container) return;
+
+    const isHidden = container.classList.contains("hidden");
+    if (isHidden) {
+      container.classList.remove("hidden");
+      if (arrow) arrow.textContent = "▲";
+      if (label) label.innerHTML = "<span>📦</span> Boshqa tariflarni yashirish";
+    } else {
+      container.classList.add("hidden");
+      if (arrow) arrow.textContent = "▼";
+      if (label) label.innerHTML = "<span>📦</span> Boshqa tariflar (30, 50, 100 Tanga)";
+    }
   };
 
   window.selectCoinPackage = function (coins, price, name, el) {
@@ -461,7 +479,15 @@
 
     document.querySelectorAll(".coin-pkg-card").forEach(c => c.classList.remove("selected"));
     const card = document.getElementById("pkg-" + coins);
-    if (card) card.classList.add("selected");
+    if (card) {
+      card.classList.add("selected");
+      if (coins > 10) {
+        const container = document.getElementById("container-other-packages");
+        if (container && container.classList.contains("hidden")) {
+          toggleOtherPackages();
+        }
+      }
+    }
   };
 
   window.copyCardNumber = function () {

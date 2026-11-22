@@ -148,14 +148,145 @@ async def send_delivery_audio(chat_id: int, audio_path: str, caption: str, title
         kwargs["title"] = title
     return await bot.send_audio(**kwargs)
 
-async def send_receipt_to_admins(file_path: str, caption: str, is_image: bool = True):
-    """Deliver payment receipt directly into administrators' chats."""
+async def send_receipt_to_admins(
+    file_path: str,
+    caption: str,
+    is_image: bool = True,
+    user_id: int = 0,
+    coins: int = 10
+):
+    """Deliver payment receipt directly into administrators' chats with Cancel, Confirm, Admin Panel buttons."""
     doc = FSInputFile(file_path)
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Cancel", callback_data=f"rcpt:cancel:{user_id}:{coins}"),
+                InlineKeyboardButton(text="Confirm", callback_data=f"rcpt:confirm:{user_id}:{coins}"),
+                InlineKeyboardButton(text="Admin Panel", callback_data=f"rcpt:ap:{user_id}:{coins}")
+            ]
+        ]
+    )
     for admin_id in settings.admin_ids:
         try:
             if is_image:
-                await bot.send_photo(chat_id=admin_id, photo=doc, caption=caption, parse_mode="Markdown")
+                await bot.send_photo(chat_id=admin_id, photo=doc, caption=caption, parse_mode="Markdown", reply_markup=kb)
             else:
-                await bot.send_document(chat_id=admin_id, document=doc, caption=caption, parse_mode="Markdown")
+                await bot.send_document(chat_id=admin_id, document=doc, caption=caption, parse_mode="Markdown", reply_markup=kb)
         except Exception as e:
             logger.error(f"Error sending receipt to admin {admin_id}: {e}")
+
+@dp.callback_query(lambda c: c.data and c.data.startswith("rcpt:"))
+async def handle_receipt_callback(callback: types.CallbackQuery):
+    admin_id = callback.from_user.id
+    if admin_id not in settings.admin_ids:
+        await callback.answer("⛔ Siz administrator emassiz!", show_alert=True)
+        return
+
+    parts = callback.data.split(":")
+    if len(parts) < 4:
+        await callback.answer("Noto'g'ri so'rov", show_alert=True)
+        return
+
+    action = parts[1]        # "cancel", "confirm", "ap"
+    target_user_id = int(parts[2])
+    coins = int(parts[3])
+
+    if action == "cancel":
+        # 3 buttons disappear, "Canceled" appears
+        cancel_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Canceled", callback_data="none")]
+            ]
+        )
+        try:
+            await callback.message.edit_reply_markup(reply_markup=cancel_kb)
+        except Exception as e:
+            logger.warning(f"Could not edit reply markup on cancel: {e}")
+
+        # Notify user
+        try:
+            await bot.send_message(
+                chat_id=target_user_id,
+                text="❌ Siz yuborgan to'lov cheki ma'muriyat tomonidan bekor qilindi.\nAgar xatolik deb hisoblasangiz, @TheNurillayev bilan bog'laning."
+            )
+        except Exception as e:
+            logger.warning(f"Could not notify user {target_user_id} of cancellation: {e}")
+
+        await callback.answer("Foydalanuvchi talabi bekor qilindi (Canceled)")
+
+    elif action == "confirm":
+        # Automatically add coins to user in DB
+        new_coins = coins
+        try:
+            async with AsyncSessionLocal() as session:
+                res = await session.execute(select(User).where(User.id == target_user_id))
+                target_user = res.scalar_one_or_none()
+                if target_user:
+                    target_user.coins = max(0, (target_user.coins or 0) + coins)
+                    await session.commit()
+                    new_coins = target_user.coins
+        except Exception as e:
+            logger.error(f"Error adding coins to user {target_user_id}: {e}")
+
+        # 3 buttons disappear, "Confirmed" appears
+        confirm_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Confirmed", callback_data="none")]
+            ]
+        )
+        try:
+            await callback.message.edit_reply_markup(reply_markup=confirm_kb)
+        except Exception as e:
+            logger.warning(f"Could not edit reply markup on confirm: {e}")
+
+        # Notify user
+        try:
+            await bot.send_message(
+                chat_id=target_user_id,
+                text=(
+                    f"🎉 *To'lovingiz tasdiqlandi!*\n\n"
+                    f"🪙 Hisobingizga *+{coins} Tanga* muvaffaqiyatli qo'shildi!\n"
+                    f"Jami balansingiz: *{new_coins} Tanga*.\n\n"
+                    f"Endi bemalol professional audio montaj buyurtma berishingiz mumkin."
+                ),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.warning(f"Could not notify user {target_user_id} of confirmation: {e}")
+
+        await callback.answer(f"Tasdiqlandi! +{coins} Tanga foydalanuvchiga qo'shildi.")
+
+    elif action == "ap":
+        # 3 buttons disappear, "Confirmed by A.P." appears
+        admin_url = f"{settings.SERVER_PUBLIC_URL}/admin.html?user_id={target_user_id}"
+        ap_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Confirmed by A.P.", callback_data="none")]
+            ]
+        )
+        try:
+            await callback.message.edit_reply_markup(reply_markup=ap_kb)
+        except Exception as e:
+            logger.warning(f"Could not edit reply markup on AP: {e}")
+
+        # Send direct navigation message with WebApp and direct URL
+        direct_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="👤 Foydalanuvchi profilini ochish", web_app=WebAppInfo(url=admin_url))],
+                [InlineKeyboardButton(text="🌐 Brauzerda ochish", url=admin_url)]
+            ]
+        )
+        await bot.send_message(
+            chat_id=callback.message.chat.id,
+            text=(
+                f"👤 *Foydalanuvchi ID:* `{target_user_id}`\n\n"
+                f"Ushbu foydalanuvchining profiliga to'g'ridan-to'g'ri o'tib, tangalarni qo'lda qo'shish uchun quyidagi tugmani bosing:"
+            ),
+            reply_markup=direct_kb,
+            parse_mode="Markdown"
+        )
+        await callback.answer("Admin panelga yo'naltirilmoqda...")
+
+@dp.callback_query(lambda c: c.data == "none")
+async def handle_noop_callback(callback: types.CallbackQuery):
+    await callback.answer()

@@ -381,22 +381,29 @@ async def submit_coin_receipt(
     user_name = f"{current_user.first_name} {current_user.last_name or ''}".strip()
     tg_handle = f"@{current_user.username}" if current_user.username else f"ID: {current_user.id}"
 
+    # Clean tariff name (e.g. "10 Tanga" without "(1 ta buyurtma)")
+    clean_package_name = package_name.split("(")[0].strip() if "(" in package_name else package_name.strip()
+
     import datetime
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     caption = (
         f"🧾 *YANGI TO'LOV CHEKI KELDI!*\n\n"
         f"👤 *Foydalanuvchi:* {user_name} ({tg_handle})\n"
         f"🆔 *Telegram ID:* `{current_user.id}`\n"
-        f"📦 *Tanlangan tarif:* {package_name}\n"
-        f"🪙 *Qo'shilishi kerak:* +{coins} Tanga\n"
+        f"📦 *Tanlangan tarif:* {clean_package_name}\n"
         f"💵 *To'lov summasi:* {amount_som:,} so'm\n"
-        f"📅 *Sana:* {now_str}\n\n"
-        f"_Admin panel orqali foydalanuvchiga tangalarni tasdiqlab berishingiz mumkin._"
+        f"📅 *Sana:* {now_str}"
     )
 
     try:
         from backend.app.bot.bot import send_receipt_to_admins
-        await send_receipt_to_admins(str(saved_path), caption, is_image=is_image)
+        await send_receipt_to_admins(
+            str(saved_path),
+            caption,
+            is_image=is_image,
+            user_id=current_user.id,
+            coins=coins
+        )
     except Exception as e:
         import logging
         logging.getLogger("vivern-auth").error(f"Failed to send receipt to admin: {e}")

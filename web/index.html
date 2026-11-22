@@ -583,13 +583,14 @@
         </div>
       </div>
 
-      <!-- Package Selection -->
-      <div style="margin-bottom: 16px;">
+      <!-- Package Selection (Image 2) -->
+      <div style="margin-bottom: 14px;">
         <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: #fff;">
           📦 Tangalar sotib olish paketlari:
         </div>
         
-        <div class="coin-pkg-card selected" id="pkg-10" onclick="selectCoinPackage(10, 5000, '10 Tanga (1 ta buyurtma)', this)">
+        <!-- Primary 10 Tanga Package -->
+        <div class="coin-pkg-card selected" id="pkg-10" onclick="selectCoinPackage(10, 5000, '10 Tanga', this)">
           <div>
             <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 10 Tanga</div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">1 ta to'liq audio montaj</div>
@@ -597,48 +598,53 @@
           <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">5,000 so'm</div>
         </div>
 
-        <div class="coin-pkg-card" id="pkg-30" onclick="selectCoinPackage(30, 14000, '30 Tanga (3 ta buyurtma)', this)">
-          <div>
-            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 30 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-7%</span></div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">3 ta montaj (1,000 so'm tejash)</div>
-          </div>
-          <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">14,000 so'm</div>
+        <!-- Dropdown toggle for remaining 3 packages (Image 2) -->
+        <div id="btn-toggle-other-packages" onclick="toggleOtherPackages()" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; margin-top: 6px; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 10px; cursor: pointer; color: var(--text-muted); font-size: 0.78rem; transition: all 0.2s ease;">
+          <span id="other-packages-label" style="display: flex; align-items: center; gap: 6px;">
+            <span>📦</span> Boshqa tariflar (30, 50, 100 Tanga)
+          </span>
+          <span id="other-packages-arrow" style="font-size: 0.72rem; color: var(--accent-gold);">▼</span>
         </div>
 
-        <div class="coin-pkg-card" id="pkg-50" onclick="selectCoinPackage(50, 22000, '50 Tanga (5 ta buyurtma)', this)">
-          <div>
-            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 50 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-12%</span></div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">5 ta montaj (3,000 so'm tejash)</div>
+        <!-- Remaining 3 Packages Container (Hidden by default, expands via dropdown) -->
+        <div id="container-other-packages" class="hidden" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+          <div class="coin-pkg-card" id="pkg-30" onclick="selectCoinPackage(30, 14000, '30 Tanga', this)">
+            <div>
+              <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 30 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-7%</span></div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">3 ta montaj (1,000 so'm tejash)</div>
+            </div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">14,000 so'm</div>
           </div>
-          <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">22,000 so'm</div>
-        </div>
 
-        <div class="coin-pkg-card" id="pkg-100" onclick="selectCoinPackage(100, 40000, '100 Tanga (10 ta buyurtma)', this)">
-          <div>
-            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">👑 100 Tanga <span style="font-size:0.68rem; background:rgba(245,158,11,0.2); color:#fbbf24; padding:2px 6px; border-radius:6px;">VIP -20%</span></div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">10 ta montaj (10,000 so'm tejash)</div>
+          <div class="coin-pkg-card" id="pkg-50" onclick="selectCoinPackage(50, 22000, '50 Tanga', this)">
+            <div>
+              <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 50 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-12%</span></div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">5 ta montaj (3,000 so'm tejash)</div>
+            </div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">22,000 so'm</div>
           </div>
-          <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">40,000 so'm</div>
+
+          <div class="coin-pkg-card" id="pkg-100" onclick="selectCoinPackage(100, 40000, '100 Tanga', this)">
+            <div>
+              <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">👑 100 Tanga <span style="font-size:0.68rem; background:rgba(245,158,11,0.2); color:#fbbf24; padding:2px 6px; border-radius:6px;">VIP -20%</span></div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">10 ta montaj (10,000 so'm tejash)</div>
+            </div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">40,000 so'm</div>
+          </div>
         </div>
       </div>
 
-      <!-- Payment Instructions & Card Details (Image 2) -->
-      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-        <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;">
-          💳 Karta orqali to'lov uchun rekvizitlar:
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.06); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px;">
-          <div>
-            <div style="font-family: monospace; font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: 1px;" id="coin-card-number">4097 8300 1146 1668</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted);">Eldor N. (Administrator)</div>
+      <!-- Compact Payment Instructions & Card Details (Image 2) -->
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+            <span>💳</span> To'lov kartasi: <span style="color: #fff; font-weight: 600;">Eldor N.</span>
           </div>
-          <button type="button" onclick="copyCardNumber()" class="btn-sm" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 4px 10px; font-size: 0.75rem;" id="btn-copy-card">
-            📋 Nusxa
-          </button>
+          <div style="font-family: monospace; font-size: 1rem; font-weight: 700; color: #fbbf24; letter-spacing: 0.8px; margin-top: 2px;" id="coin-card-number">4097 8300 1146 1668</div>
         </div>
-        <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.4;">
-          Belgilangan summa bo'yicha yuqoridagi kartaga to'lov qiling va to'lov chekini quyida yuklang.
-        </div>
+        <button type="button" onclick="copyCardNumber()" class="btn-sm" style="background: rgba(245,158,11,0.18); border: 1px solid var(--accent-gold); color: #fff; padding: 6px 12px; font-size: 0.76rem; border-radius: 8px; font-weight: 600; cursor: pointer;" id="btn-copy-card">
+          📋 Nusxa
+        </button>
       </div>
 
       <!-- Receipt Upload & Submission Form (Image 2 - Item 3) -->
@@ -653,10 +659,10 @@
             To'langan tarifni tasdiqlang:
           </label>
           <select id="receipt-package-select" onchange="onReceiptDropdownChange(this)" style="width: 100%; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; font-size: 0.88rem; box-sizing: border-box;">
-            <option value="10" data-price="5000" data-name="10 Tanga (1 ta buyurtma)" selected>🪙 10 Tanga — 5,000 so'm</option>
-            <option value="30" data-price="14000" data-name="30 Tanga (3 ta buyurtma)">🪙 30 Tanga — 14,000 so'm (-7%)</option>
-            <option value="50" data-price="22000" data-name="50 Tanga (5 ta buyurtma)">🪙 50 Tanga — 22,000 so'm (-12%)</option>
-            <option value="100" data-price="40000" data-name="100 Tanga (10 ta buyurtma)">👑 100 Tanga — 40,000 so'm (VIP -20%)</option>
+            <option value="10" data-price="5000" data-name="10 Tanga" selected>🪙 10 Tanga — 5,000 so'm</option>
+            <option value="30" data-price="14000" data-name="30 Tanga">🪙 30 Tanga — 14,000 so'm (-7%)</option>
+            <option value="50" data-price="22000" data-name="50 Tanga">🪙 50 Tanga — 22,000 so'm (-12%)</option>
+            <option value="100" data-price="40000" data-name="100 Tanga">👑 100 Tanga — 40,000 so'm (VIP -20%)</option>
           </select>
         </div>
 

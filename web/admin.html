@@ -815,6 +815,15 @@
         // Show admin navigation cards ONLY (neither section opened automatically)
         document.getElementById("admin-content").classList.remove("hidden");
         closeCurrentSection();
+
+        // Direct user profile navigation (e.g. from bot receipt action)
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetUserId = urlParams.get("user_id");
+        if (targetUserId) {
+          toggleAdminSection("users");
+          await loadUsers();
+          await openUserProfileModal(parseInt(targetUserId, 10));
+        }
       } catch (e) {
         document.getElementById("unauthorized-card").classList.remove("hidden");
       }
@@ -1251,7 +1260,23 @@
     let currentModalUser = null;
 
     async function openUserProfileModal(userId) {
-      const user = allUsersCache.find(u => u.id === userId);
+      let user = allUsersCache.find(u => u.id === userId);
+      if (!user) {
+        try {
+          const res = await fetch(`/api/admin/users?query=${userId}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const list = await res.json();
+            user = list.find(u => u.id === userId) || list[0];
+            if (user && !allUsersCache.find(u => u.id === user.id)) {
+              allUsersCache.push(user);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching user for modal:", e);
+        }
+      }
       if (!user) return;
       currentModalUser = user;
 
