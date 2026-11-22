@@ -326,23 +326,29 @@ main {
   transform: scale(1.08);
 }
 
-/* Actions Stack on Account Card (Image 2) */
+/* Actions Stack on Account Card (Image 1 & 2) */
 .profile-actions-stack {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  padding: 5px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
   z-index: 10;
 }
 
 .btn-profile-action {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--accent-gold);
   display: flex;
   align-items: center;
@@ -353,18 +359,32 @@ main {
   flex-shrink: 0;
 }
 
-/* Balance Interactive Pills (Image 3) */
+.btn-profile-action:hover, .btn-profile-action:active {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: var(--accent-gold);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+/* Balance Interactive Pills (Image 1 & 3) */
 .btn-balance-pill {
-  padding: 4px 12px;
+  padding: 5px 8px;
   border-radius: 20px;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 6px;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  width: 145px;
+  min-width: 145px;
+  max-width: 145px;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
 }
 .btn-balance-pill:hover, .btn-balance-pill:active {
   transform: translateY(-1px);
@@ -395,6 +415,15 @@ main {
 .pill-gold:hover {
   background: rgba(245, 158, 11, 0.35);
   border-color: #fbbf24;
+}
+.pill-blue {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+.pill-blue:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: var(--accent-blue);
 }
 
 /* Coin Packages Cards (Image 4) */

@@ -106,11 +106,7 @@
     }
 
     if (accTrial) {
-      if (isPaused) {
-        accTrial.textContent = `${remaining} ta bepul (Tejalmoqda)`;
-      } else {
-        accTrial.textContent = remaining > 0 ? `${remaining} ta bepul` : "Tugagan (Pullik rejim)";
-      }
+      accTrial.textContent = remaining > 0 ? `${remaining} ta bepul` : "Tugagan (Pullik rejim)";
     }
     if (accAvatar) {
       if (currentUser.avatar_url) {
@@ -506,6 +502,74 @@
     } finally {
       if (btn) btn.disabled = false;
     }
+  };
+
+  // Modal: Completed Orders List (Minimal: Title & Date Only - Item 1)
+  window.openCompletedOrdersModal = async function () {
+    const modal = document.getElementById("modal-completed-orders-list");
+    const content = document.getElementById("completed-orders-modal-content");
+    if (modal) modal.classList.remove("hidden");
+    if (!content) return;
+
+    content.innerHTML = '<div style="text-align: center; padding: 25px; color: var(--text-muted);"><div class="spinner"></div><div style="margin-top: 8px; font-size: 0.82rem;">Buyurtmalar yuklanmoqda...</div></div>';
+
+    try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
+      const res = await fetch("/api/orders/my", {
+        headers: { "Authorization": `Bearer ${activeToken}` }
+      });
+      const orders = await res.json();
+
+      const completed = orders.filter(o => o.status === "completed");
+
+      if (completed.length === 0) {
+        content.innerHTML = `
+          <div style="text-align: center; padding: 30px 15px; color: var(--text-muted);">
+            <div style="font-size: 2.5rem; margin-bottom: 8px;">📋</div>
+            <div style="font-weight: 600; color: #fff;">Hozircha tayyorlangan buyurtmalar yo'q</div>
+            <div style="font-size: 0.8rem; margin-top: 4px;">Birinchi audio montajingizni yarating!</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Item 1: Faqatgina nomi va tayyorlangan sanasi
+      content.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${completed.map((o) => {
+            const title = o.audio_title && o.audio_title.trim() ? escapeHtml(o.audio_title) : `Audio #${o.id.substring(0, 8)}`;
+            const dateStr = o.completed_at ? new Date(o.completed_at).toLocaleString("uz-UZ", {
+              year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+            }) : (o.created_at ? new Date(o.created_at).toLocaleString("uz-UZ", {
+              year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+            }) : "Noma'lum");
+
+            return `
+              <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="min-width: 0; flex: 1;">
+                  <div style="font-weight: 700; font-size: 0.92rem; color: #fff; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                    🎵 ${title}
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">
+                    📅 ${dateStr}
+                  </div>
+                </div>
+                <div style="flex-shrink: 0; margin-left: 10px;">
+                  <span style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); font-weight: 600;">✓ Tayyor</span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    } catch (e) {
+      content.innerHTML = `<div style="color: var(--danger-color); padding: 15px; text-align: center; font-size: 0.85rem;">Buyurtmalarni yuklashda xatolik yuz berdi.</div>`;
+    }
+  };
+
+  window.closeCompletedOrdersModal = function () {
+    const modal = document.getElementById("modal-completed-orders-list");
+    if (modal) modal.classList.add("hidden");
   };
 
   window.switchTab = function (tabId) {
