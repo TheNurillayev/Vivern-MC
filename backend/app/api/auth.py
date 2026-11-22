@@ -150,6 +150,7 @@ async def authenticate_telegram(req: TelegramInitDataRequest, db: AsyncSession =
             language_code=user.language_code,
             trial_count=user.trial_count,
             extra_trials=user.extra_trials or 0,
+            coins=user.coins or 0,
             save_trials=bool(user.save_trials),
             is_blocked=bool(user.is_blocked),
             is_admin=user.is_admin,
@@ -296,3 +297,58 @@ async def get_my_gifts(
         }
         for g in gifts
     ]
+
+@router.get("/me", response_model=UserInfo)
+async def get_my_info(
+    current_user: User = Depends(get_current_user)
+):
+    avatar_url = None
+    if current_user.avatar_path and os.path.exists(current_user.avatar_path):
+        avatar_url = f"/api/auth/profile/avatar/{current_user.id}"
+    return UserInfo(
+        id=current_user.id,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        username=current_user.username,
+        language_code=current_user.language_code,
+        trial_count=current_user.trial_count,
+        extra_trials=current_user.extra_trials or 0,
+        coins=current_user.coins or 0,
+        save_trials=bool(current_user.save_trials),
+        is_blocked=bool(current_user.is_blocked),
+        is_admin=current_user.is_admin,
+        avatar_url=avatar_url
+    )
+
+class NotifyCoinPaymentRequest(BaseModel):
+    package_name: str
+    coins: int
+    amount_som: int
+
+@router.post("/coins/notify-payment")
+async def notify_coin_payment(
+    req: NotifyCoinPaymentRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Sends notification to Telegram admin when user reports they sent payment for coins."""
+    try:
+        from backend.app.bot.bot import bot
+        user_name = f"{current_user.first_name} {current_user.last_name or ''}".strip()
+        tg_handle = f"@{current_user.username}" if current_user.username else f"ID: {current_user.id}"
+        admin_text = (
+            f"💰 *Yangi Tangalar To'lovi So'rovi!*\n\n"
+            f"👤 Foydalanuvchi: *{user_name}* ({tg_handle})\n"
+            f"🆔 ID: `{current_user.id}`\n"
+            f"📦 Paket: *{req.package_name}* (+{req.coins} tanga)\n"
+            f"💵 Summa: *{req.amount_som:,} so'm*\n\n"
+            f"Admin panel orqali foydalanuvchiga tangalarni tasdiqlab berishingiz mumkin."
+        )
+        for admin_id in settings.admin_ids:
+            try:
+                await bot.send_message(chat_id=admin_id, text=admin_text, parse_mode="Markdown")
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return {"success": True, "message": "Admin bildirishnoma qabul qildi"}

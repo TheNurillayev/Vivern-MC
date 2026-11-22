@@ -52,6 +52,7 @@ async def init_db():
         for col, col_type in [
             ("avatar_path", "VARCHAR(512)"),
             ("extra_trials", "INTEGER DEFAULT 0"),
+            ("coins", "INTEGER DEFAULT 0"),
             ("save_trials", "BOOLEAN DEFAULT 0"),
             ("is_blocked", "BOOLEAN DEFAULT 0")
         ]:
@@ -59,6 +60,12 @@ async def init_db():
                 await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
             except Exception:
                 pass
+
+        # Unstick any pending orders that were waiting in payment_required
+        try:
+            await conn.execute(text("UPDATE orders SET status = 'queued' WHERE status = 'payment_required'"))
+        except Exception:
+            pass
     await seed_default_library_assets()
 
 async def seed_default_library_assets():

@@ -285,7 +285,7 @@
     <!-- Page: Account Details -->
     <div id="page-account" class="tab-content hidden">
       <div class="card" style="position: relative; text-align: center; padding: 25px 20px;">
-        <!-- Vertical Actions Stack: Pencil, Gift, Settings (Image 2) -->
+        <!-- Vertical Actions Stack: Pencil, Gift, Settings, Balance (Images 2 & 4) -->
         <div class="profile-actions-stack">
           <button type="button" class="btn-profile-action" onclick="toggleProfileEditMenu(event)" title="Profilni tahrirlash">
             <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -297,6 +297,9 @@
           </button>
           <button type="button" class="btn-profile-action" onclick="openUserSettingsModal()" title="Sozlamalar">
             ⚙️
+          </button>
+          <button type="button" class="btn-profile-action" onclick="openCoinBalanceModal()" title="Tanga Balansi">
+            💳
           </button>
         </div>
 
@@ -323,18 +326,31 @@
 
       <div class="card">
         <div class="card-title"><span>💳</span> Xizmat Balansi</div>
+        
+        <!-- Tangalar Balansi qatori (Image 4 & 5) -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: var(--text-muted);">Bepul sinovlar:</span>
-          <button type="button" id="acc-trial-btn" class="btn-balance-pill pill-green" onclick="openTrialBalanceModal()">
-            <span id="acc-trial-status">2 ta bepul</span> ⚙️
+          <span style="color: var(--text-muted);">Mening tangalarim:</span>
+          <button type="button" id="acc-coins-btn" class="btn-balance-pill pill-gold" onclick="openCoinBalanceModal()">
+            <span id="acc-coins-status">0 Tanga</span> 🪙
           </button>
         </div>
+
+        <!-- Bepul sinovlar qatori (Image 5: Lightning or Battery icon) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: var(--text-muted);">Bepul sinovlar:</span>
+          <button type="button" id="acc-trial-btn" class="btn-balance-pill pill-green" onclick="openTrialBalanceModal()">
+            <span id="acc-trial-status">2 ta bepul</span> <span id="acc-trial-icon">⚡</span>
+          </button>
+        </div>
+
+        <!-- Buyurtma narxi qatori (Item 5: 10 ta Tanga) -->
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
           <span style="color: var(--text-muted);">Buyurtma narxi:</span>
           <button type="button" class="btn-balance-pill pill-orange" onclick="openPriceExplanationModal()">
-            <span>5,000 so'm</span> ℹ️
+            <span>10 Tanga</span> ℹ️
           </button>
         </div>
+
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
           <span style="color: var(--text-muted);">Jami buyurtmalarim:</span>
           <span id="acc-total-orders" style="font-weight: 600;">0 ta</span>
@@ -521,7 +537,7 @@
       <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
         <div style="font-size: 0.8rem; color: var(--text-muted);">Oddiy audio montaj narxi:</div>
         <div style="font-size: 1.6rem; font-weight: 800; color: var(--accent-gold); margin-top: 4px;">
-          5,000 so'm <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">/ 1 ta buyurtma</span>
+          10 Tanga <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">(5,000 so'm) / 1 ta buyurtma</span>
         </div>
       </div>
 
@@ -540,6 +556,100 @@
 
       <div style="text-align: right;">
         <button onclick="closePriceExplanationModal()" class="btn btn-secondary" style="width: auto; padding: 8px 20px; font-size: 0.85rem; font-weight: 600;">Tushunarli</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Coin Balance & Top-up (Images 1, 4 & 5) -->
+  <div id="modal-coin-balance" class="modal-overlay hidden" onclick="if(event.target === this) closeCoinBalanceModal()">
+    <div class="modal-card" style="text-align: left; max-width: 440px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+          <span>🪙</span> Tanga Balansi va Xarid
+        </div>
+        <button onclick="closeCoinBalanceModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+
+      <!-- Current Coins Display -->
+      <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 14px; padding: 16px; margin-bottom: 16px; text-align: center;">
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Sizning hisobingizdagi tangalar:</div>
+        <div id="modal-coin-count" style="font-size: 2.2rem; font-weight: 800; color: #fbbf24; margin: 4px 0;">
+          0 Tanga
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          ⚡ 1 ta professional audio montaj = <b>10 Tanga</b>
+        </div>
+      </div>
+
+      <!-- Package Selection -->
+      <div style="margin-bottom: 16px;">
+        <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: #fff;">
+          📦 Tangalar sotib olish paketlari:
+        </div>
+        
+        <div class="coin-pkg-card selected" id="pkg-10" onclick="selectCoinPackage(10, 5000, '10 Tanga (1 ta buyurtma)', this)">
+          <div>
+            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 10 Tanga</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">1 ta to'liq audio montaj</div>
+          </div>
+          <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">5,000 so'm</div>
+        </div>
+
+        <div class="coin-pkg-card" id="pkg-30" onclick="selectCoinPackage(30, 14000, '30 Tanga (3 ta buyurtma)', this)">
+          <div>
+            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 30 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-7%</span></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">3 ta montaj (1,000 so'm tejash)</div>
+          </div>
+          <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">14,000 so'm</div>
+        </div>
+
+        <div class="coin-pkg-card" id="pkg-50" onclick="selectCoinPackage(50, 22000, '50 Tanga (5 ta buyurtma)', this)">
+          <div>
+            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 50 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-12%</span></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">5 ta montaj (3,000 so'm tejash)</div>
+          </div>
+          <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">22,000 so'm</div>
+        </div>
+
+        <div class="coin-pkg-card" id="pkg-100" onclick="selectCoinPackage(100, 40000, '100 Tanga (10 ta buyurtma)', this)">
+          <div>
+            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">👑 100 Tanga <span style="font-size:0.68rem; background:rgba(245,158,11,0.2); color:#fbbf24; padding:2px 6px; border-radius:6px;">VIP -20%</span></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">10 ta montaj (10,000 so'm tejash)</div>
+          </div>
+          <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">40,000 so'm</div>
+        </div>
+      </div>
+
+      <!-- Payment Instructions & Card Details -->
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;">
+          💳 Karta orqali to'lov uchun rekvizitlar:
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.06); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px;">
+          <div>
+            <div style="font-family: monospace; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 1px;" id="coin-card-number">9860 0301 2345 6789</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Eldor N. (Administrator)</div>
+          </div>
+          <button type="button" onclick="copyCardNumber()" class="btn-sm" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 4px 10px; font-size: 0.75rem;" id="btn-copy-card">
+            📋 Nusxa
+          </button>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.4;">
+          Tanlangan summa bo'yicha kartaga to'lov qiling va chekni yuboring. Tangalar hisobingizga darhol tasdiqlab beriladi.
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <a id="btn-send-receipt-tg" href="https://t.me/TheNurillayev" target="_blank" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; padding: 11px; font-size: 0.88rem; font-weight: 700;">
+          ✈️ Chekni Yuborish (Telegram @TheNurillayev)
+        </a>
+        <button type="button" onclick="notifyPaymentMade()" id="btn-notify-paid" class="btn btn-secondary" style="padding: 10px; font-size: 0.84rem;">
+          📩 To'lov qildim (Adminni xabardor qilish)
+        </button>
+        <button type="button" onclick="closeCoinBalanceModal()" class="btn" style="background: transparent; color: var(--text-muted); font-size: 0.82rem; padding: 6px;">
+          Yopish
+        </button>
       </div>
     </div>
   </div>

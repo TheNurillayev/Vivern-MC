@@ -12,6 +12,7 @@ class UserInfo(BaseModel):
     language_code: Optional[str] = "uz"
     trial_count: int
     extra_trials: Optional[int] = 0
+    coins: Optional[int] = 0
     save_trials: Optional[bool] = False
     is_blocked: Optional[bool] = False
     is_admin: bool

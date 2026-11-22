@@ -74,8 +74,24 @@ async def create_order(
     # Check free trial eligibility (including gifts/extra_trials and save_trials pause)
     total_allowed = settings.FREE_TRIAL_GENERATIONS + (user.extra_trials or 0)
     is_free = (not user.save_trials) and (user.trial_count < total_allowed)
+
+    if not is_free:
+        # Paid order requires 10 Coins
+        user_coins = user.coins or 0
+        if user_coins < 10:
+            if os.path.exists(tmp_orig_path):
+                os.remove(tmp_orig_path)
+            if os.path.exists(tmp_spec_path):
+                os.remove(tmp_spec_path)
+            raise HTTPException(
+                status_code=402,
+                detail="Balansingizda yetarli tanga mavjud emas. Buyurtma uchun 10 ta tanga kerak. Iltimos, hisobingizni to'ldiring."
+            )
+        # Deduct 10 coins from user balance
+        user.coins = user_coins - 10
+
     price = 0 if is_free else settings.PRICE_PER_ORDER_SOM
-    initial_status = "queued" if is_free else "payment_required"
+    initial_status = "queued"
 
     order_id = str(uuid.uuid4())
 

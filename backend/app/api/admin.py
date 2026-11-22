@@ -307,6 +307,7 @@ async def list_admin_users(
             "language_code": user.language_code or "uz",
             "trial_count": user.trial_count or 0,
             "extra_trials": user.extra_trials or 0,
+            "coins": user.coins or 0,
             "save_trials": bool(user.save_trials),
             "is_blocked": bool(user.is_blocked),
             "is_admin": bool(user.is_admin or (user.id in settings.admin_ids)),
@@ -403,6 +404,50 @@ async def toggle_block_user(
     user.is_blocked = not bool(user.is_blocked)
     await db.commit()
     return {"success": True, "user_id": user_id, "is_blocked": user.is_blocked}
+
+class AddCoinsRequest(BaseModel):
+    coins: int = 10
+    message: Optional[str] = ""
+
+@router.post("/users/{user_id}/coins")
+async def add_user_coins(
+    user_id: int,
+    req: AddCoinsRequest,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Admin adds coins to user account and notifies user via Telegram."""
+    res = await db.execute(select(User).where(User.id == user_id))
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    coins_to_add = req.coins
+    user.coins = max(0, (user.coins or 0) + coins_to_add)
+    await db.commit()
+    await db.refresh(user)
+
+    # Send telegram message to user if possible
+    try:
+        from backend.app.bot.bot import bot
+        text = (
+            f"🪙 *Hisobingizga tangalar qo'shildi!*\n\n"
+            f"✨ Qo'shildi: *+{coins_to_add} ta tanga*\n"
+            f"💰 Yangi balansingiz: *{user.coins} ta tanga*\n"
+        )
+        if req.message:
+            text += f"💬 *Xabar:* {req.message}\n"
+        text += f"\n_Har bir professional audio montaj narxi: 10 ta tanga._ 🎂🎶"
+        await bot.send_message(chat_id=user_id, text=text, parse_mode="Markdown")
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "user_id": user_id,
+        "coins": user.coins,
+        "added": coins_to_add
+    }
 
 @router.get("/costs/summary")
 async def get_cost_summary(

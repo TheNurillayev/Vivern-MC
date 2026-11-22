@@ -387,6 +387,34 @@ main {
   background: rgba(245, 158, 11, 0.25);
   border-color: var(--accent-gold);
 }
+.pill-gold {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+.pill-gold:hover {
+  background: rgba(245, 158, 11, 0.35);
+  border-color: #fbbf24;
+}
+
+/* Coin Packages Cards (Image 4) */
+.coin-pkg-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.coin-pkg-card:hover, .coin-pkg-card.selected {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: var(--accent-gold);
+  transform: translateY(-2px);
+}
 
 /* Switch UI for Settings */
 .toggle-switch-wrapper {

@@ -62,20 +62,24 @@
     const totalAllowed = 3 + (currentUser.extra_trials || 0);
     const remaining = Math.max(0, totalAllowed - (currentUser.trial_count || 0));
     const isPaused = Boolean(currentUser.save_trials);
+    const userCoins = currentUser.coins || 0;
 
     if (trialEl) {
       if (isPaused) {
         trialEl.textContent = `⏸️ Saqlangan (${remaining} ta)`;
+      } else if (remaining > 0) {
+        trialEl.textContent = `${remaining} ta bepul`;
       } else {
-        trialEl.textContent = remaining > 0 ? `${remaining} ta bepul` : "5,000 so'm";
+        trialEl.textContent = `${userCoins} Tanga`;
       }
     }
 
+    // Clean Service Price Display (Images 1 & 2)
     if (orderPriceEl) {
-      if (isPaused) {
-        orderPriceEl.textContent = "5,000 so'm (Urinishlar saqlanmoqda)";
+      if (!isPaused && remaining > 0) {
+        orderPriceEl.innerHTML = '<span style="color:var(--accent-emerald); font-weight:700;">Bepul</span>';
       } else {
-        orderPriceEl.textContent = remaining > 0 ? `Bepul (${remaining}/${totalAllowed} ta qoldi)` : "5,000 so'm";
+        orderPriceEl.innerHTML = '<span style="color:var(--accent-gold); font-weight:700;">10 Tanga</span>';
       }
     }
 
@@ -83,14 +87,24 @@
       adminTab.classList.remove("hidden");
     }
 
-    // Populate Account Page details
+    // Populate Account Page details (Images 4 & 5)
     const accName = document.getElementById("acc-name");
     const accUsername = document.getElementById("acc-username");
+    const accCoins = document.getElementById("acc-coins-status");
     const accTrial = document.getElementById("acc-trial-status");
+    const accTrialIcon = document.getElementById("acc-trial-icon");
     const accAvatar = document.getElementById("acc-avatar");
     const fullName = `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() || "Foydalanuvchi";
+
     if (accName) accName.textContent = fullName;
     if (accUsername) accUsername.textContent = currentUser.username ? `@${currentUser.username}` : "";
+    if (accCoins) accCoins.textContent = `${userCoins} Tanga`;
+
+    // Dynamic icon: ⚡ when active, 🔋 when paused/inactive (Image 5)
+    if (accTrialIcon) {
+      accTrialIcon.textContent = isPaused ? "🔋" : "⚡";
+    }
+
     if (accTrial) {
       if (isPaused) {
         accTrial.textContent = `${remaining} ta bepul (Tejalmoqda)`;
@@ -415,6 +429,85 @@
     if (modal) modal.classList.add("hidden");
   };
 
+  // Selected coin package state
+  let selectedCoinPackage = { coins: 10, price: 5000, name: "10 Tanga (1 ta buyurtma)" };
+
+  // Modal: Coin Balance & Top-up (Images 1, 4 & 5)
+  window.openCoinBalanceModal = function () {
+    const modal = document.getElementById("modal-coin-balance");
+    const countEl = document.getElementById("modal-coin-count");
+    if (countEl) {
+      countEl.textContent = `${currentUser?.coins || 0} Tanga`;
+    }
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeCoinBalanceModal = function () {
+    const modal = document.getElementById("modal-coin-balance");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  window.selectCoinPackage = function (coins, price, name, el) {
+    selectedCoinPackage = { coins, price, name };
+    document.querySelectorAll(".coin-pkg-card").forEach(c => c.classList.remove("selected"));
+    if (el) el.classList.add("selected");
+
+    const tgLink = document.getElementById("btn-send-receipt-tg");
+    if (tgLink) {
+      const uId = currentUser ? currentUser.id : "";
+      const text = `Assalomu alaykum! Vivern MC da ${name} uchun to'lov qildim. Mening ID: ${uId}`;
+      tgLink.href = `https://t.me/TheNurillayev?text=${encodeURIComponent(text)}`;
+    }
+  };
+
+  window.copyCardNumber = function () {
+    const cardEl = document.getElementById("coin-card-number");
+    const copyBtn = document.getElementById("btn-copy-card");
+    if (!cardEl) return;
+    const cardNum = cardEl.textContent.replace(/\s+/g, "");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cardNum).then(() => {
+        if (copyBtn) {
+          copyBtn.textContent = "✅ Nusxalandi";
+          setTimeout(() => copyBtn.textContent = "📋 Nusxa", 3000);
+        }
+      }).catch(() => {
+        prompt("Karta raqami:", cardNum);
+      });
+    } else {
+      prompt("Karta raqami:", cardNum);
+    }
+  };
+
+  window.notifyPaymentMade = async function () {
+    const btn = document.getElementById("btn-notify-paid");
+    if (btn) btn.disabled = true;
+
+    try {
+      const activeToken = authToken || sessionStorage.getItem("vivern_token");
+      const res = await fetch("/api/auth/coins/notify-payment", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${activeToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          package_name: selectedCoinPackage.name,
+          coins: selectedCoinPackage.coins,
+          amount_som: selectedCoinPackage.price
+        })
+      });
+      if (!res.ok) throw new Error("Xabar yuborishda xatolik");
+
+      alert("✅ To'lov haqida xabar adminga yetkazildi!\n\nAdministrator to'lovni tasdiqlashi bilan hisobingizga " + selectedCoinPackage.coins + " ta tanga qo'shiladi.");
+      closeCoinBalanceModal();
+    } catch (e) {
+      alert("Xatolik: " + e.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
   window.switchTab = function (tabId) {
     document.querySelectorAll(".tab-content").forEach((el) => el.classList.add("hidden"));
     document.querySelectorAll(".tab-btn").forEach((el) => el.classList.remove("active"));
@@ -675,6 +768,28 @@
       alert("Iltimos, sevimli musiqa faylini tanlang!");
       return;
     }
+
+    const totalAllowed = 3 + (currentUser?.extra_trials || 0);
+    const remaining = Math.max(0, totalAllowed - (currentUser?.trial_count || 0));
+    const isPaused = Boolean(currentUser?.save_trials);
+    const hasFreeTrial = (!isPaused) && (remaining > 0);
+    const userCoins = currentUser?.coins || 0;
+
+    if (!hasFreeTrial && userCoins < 10) {
+      openCoinBalanceModal();
+      alert("⚠️ Buyurtma berish uchun hisobingizda kamida 10 ta tanga bo'lishi kerak.\n\nSizning balansingiz: " + userCoins + " ta tanga. Iltimos, hisobingizni to'ldiring!");
+      return;
+    }
+
+    const modalDesc = document.querySelector("#modal-confirm div[style*='color: var(--text-muted)']");
+    if (modalDesc) {
+      if (hasFreeTrial) {
+        modalDesc.innerHTML = `Tanlangan telefon suhbati va musiqa asosida professional audio montaj boshlansinmi?<br><b style="color:var(--accent-emerald);">Narxi: Bepul (Sinov hisobidan)</b>`;
+      } else {
+        modalDesc.innerHTML = `Tanlangan telefon suhbati va musiqa asosida professional audio montaj boshlansinmi?<br><b style="color:var(--accent-gold);">Narxi: 10 Tanga (Balansingizdan sarflanadi)</b>`;
+      }
+    }
+
     const modal = document.getElementById("modal-confirm");
     if (modal) modal.classList.remove("hidden");
   };
@@ -785,6 +900,27 @@
       if (document.getElementById("input-audio-title")) document.getElementById("input-audio-title").value = "";
       if (document.getElementById("input-wishes-start")) document.getElementById("input-wishes-start").value = "";
       if (document.getElementById("input-wishes-end")) document.getElementById("input-wishes-end").value = "";
+
+      // If paid order, deduct 10 coins locally and refresh
+      const totalAllowed = 3 + (currentUser?.extra_trials || 0);
+      const remaining = Math.max(0, totalAllowed - (currentUser?.trial_count || 0));
+      const isPaused = Boolean(currentUser?.save_trials);
+      const hasFreeTrial = (!isPaused) && (remaining > 0);
+
+      if (!hasFreeTrial) {
+        currentUser.coins = Math.max(0, (currentUser.coins || 0) - 10);
+      }
+      renderUserProfile();
+
+      // Refresh /api/auth/me in background
+      fetch("/api/auth/me", {
+        headers: { "Authorization": `Bearer ${authToken}` }
+      }).then(r => r.json()).then(u => {
+        if (u && u.id) {
+          currentUser = u;
+          renderUserProfile();
+        }
+      }).catch(() => {});
 
       // Switch to orders history
       switchTab("orders");

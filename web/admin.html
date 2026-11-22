@@ -600,6 +600,9 @@
         <div class="admin-user-menu-item" onclick="adminOpenUserPhoto()">
           <span>🖼️</span> Open photo
         </div>
+        <div class="admin-user-menu-item" onclick="adminOpenAddCoinsModal()">
+          <span>🪙</span> Tangalar qo'shish
+        </div>
         <div class="admin-user-menu-item" onclick="adminOpenSendGiftModal()">
           <span>🎁</span> Send a gift
         </div>
@@ -621,6 +624,10 @@
     </div>
 
     <div class="user-meta-stats-grid">
+      <div class="meta-stat-cell">
+        <span class="meta-stat-label">🪙 Tangalar Balansi</span>
+        <span class="meta-stat-value" id="fp-coins" style="color:#fbbf24; font-weight:700;">0 ta Tanga</span>
+      </div>
       <div class="meta-stat-cell">
         <span class="meta-stat-label">💳 Bepul Sinovlar</span>
         <span class="meta-stat-value" id="fp-trials" style="color:var(--accent-emerald);">3 ta bepul qoldi</span>
@@ -676,6 +683,40 @@
     <div style="position:relative; max-width:90vw; max-height:85vh; text-align:center;">
       <button onclick="closeAdminViewPhotoModal()" style="position:absolute; top:-14px; right:-14px; width:36px; height:36px; border-radius:50%; background:#222; border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10;">✕</button>
       <img id="admin-view-photo-img" src="" alt="Foydalanuvchi rasmi" style="max-width:85vw; max-height:75vh; border-radius:16px; object-fit:contain; box-shadow:0 15px 35px rgba(0,0,0,0.8); border:2px solid rgba(255,255,255,0.15);">
+    </div>
+  </div>
+
+  <!-- Modal: Add Coins to User -->
+  <div id="modal-admin-add-coins" class="hidden" onclick="if(event.target === this) closeAdminAddCoinsModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:400px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-weight:700; font-size:1.15rem; color:var(--text-main);">🪙 Tangalar Qo'shish</div>
+        <button onclick="closeAdminAddCoinsModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+        Foydalanuvchi hisobiga tanga qo'shish (1 ta audio = 10 tanga):
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:6px;">Tangalar miqdori:</label>
+        <select id="admin-coins-amount" style="width:100%; padding:10px 12px; border-radius:10px; background:rgba(0,0,0,0.4); border:1px solid var(--border-color); color:#fff; font-size:0.9rem;">
+          <option value="10" selected>+10 Tanga (1 ta buyurtma)</option>
+          <option value="20">+20 Tanga (2 ta buyurtma)</option>
+          <option value="30">+30 Tanga (3 ta buyurtma)</option>
+          <option value="50">+50 Tanga (5 ta buyurtma)</option>
+          <option value="100">+100 Tanga (10 ta buyurtma)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:6px;">Foydalanuvchiga xabar (ixtiyoriy):</label>
+        <input type="text" id="admin-coins-msg" placeholder="Masalan: To'lovingiz tasdiqlandi!" style="width:100%; padding:10px 12px; border-radius:10px; background:rgba(0,0,0,0.4); border:1px solid var(--border-color); color:#fff; font-size:0.88rem; box-sizing:border-box;">
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button onclick="closeAdminAddCoinsModal()" class="btn-sm btn-secondary" style="padding:8px 16px;">Bekor qilish</button>
+        <button id="btn-submit-add-coins" onclick="adminSubmitAddCoins()" class="btn-sm" style="padding:8px 18px; background:var(--accent-gold); color:#000; font-weight:700;">🪙 Qo'shish</button>
+      </div>
     </div>
   </div>
 
@@ -1270,6 +1311,8 @@
 
       const compOrdersEl = document.getElementById("fp-completed-orders");
       if (compOrdersEl) compOrdersEl.textContent = `${user.completed_orders || 0} ta`;
+      const coinsEl = document.getElementById("fp-coins");
+      if (coinsEl) coinsEl.textContent = `${user.coins || 0} ta Tanga`;
       const langEl = document.getElementById("fp-language");
       if (langEl) langEl.textContent = "UZ";
       const createdEl = document.getElementById("fp-created-at");
@@ -1359,6 +1402,56 @@
 
     function closeAdminViewPhotoModal() {
       document.getElementById("modal-admin-view-photo")?.classList.add("hidden");
+    }
+
+    // 1.5. Tangalar qo'shish (Add Coins)
+    function adminOpenAddCoinsModal() {
+      document.getElementById("admin-user-menu")?.classList.add("hidden");
+      if (!currentModalUser) return;
+      document.getElementById("admin-coins-amount").value = "10";
+      document.getElementById("admin-coins-msg").value = "";
+      document.getElementById("modal-admin-add-coins").classList.remove("hidden");
+    }
+
+    function closeAdminAddCoinsModal() {
+      document.getElementById("modal-admin-add-coins")?.classList.add("hidden");
+    }
+
+    async function adminSubmitAddCoins() {
+      if (!currentModalUser) return;
+      const coins = parseInt(document.getElementById("admin-coins-amount").value, 10) || 10;
+      const message = document.getElementById("admin-coins-msg").value.trim() || undefined;
+      const submitBtn = document.getElementById("btn-submit-add-coins");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Qo'shilmoqda...";
+
+      try {
+        const res = await fetch(`/api/admin/users/${currentModalUser.id}/coins`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ coins, message })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Tangalar qo'shishda xatolik");
+
+        closeAdminAddCoinsModal();
+        showAdminNotification(`✅ ${currentModalUser.first_name || 'Foydalanuvchi'}ga +${coins} ta tanga qo'shildi!`, "success");
+
+        currentModalUser.coins = data.coins;
+        const u = allUsersCache.find(x => x.id === currentModalUser.id);
+        if (u) u.coins = data.coins;
+
+        const coinsEl = document.getElementById("fp-coins");
+        if (coinsEl) coinsEl.textContent = `${data.coins} ta Tanga`;
+      } catch (err) {
+        alert("Xatolik: " + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "🪙 Qo'shish";
+      }
     }
 
     // 2. Send a gift
