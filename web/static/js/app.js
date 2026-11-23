@@ -1351,7 +1351,7 @@
                 </button>
               </div>
             `}
-            ${hasActiveOrders ? `
+            ${["queued", "processing", "analyzing", "mixing"].includes(o.status) ? `
               <div style="font-size: 0.75rem; color: var(--accent-gold); margin-top: 6px; display:flex; align-items:center; gap:6px;">
                 <span class="spinner" style="width:14px; height:14px; border-width:2px;"></span>
                 <span>Serverda qayta ishlanmoqda, sahifani yangilash shart emas...</span>

@@ -322,12 +322,13 @@
       align-items: center;
       justify-content: space-between;
       position: sticky;
-      top: 0;
-      background: var(--bg-primary);
-      padding: 12px 0;
-      z-index: 10;
+      top: -16px;
+      margin: -16px -16px 10px -16px;
+      background: #0f111a;
+      padding: 14px 16px;
+      z-index: 100;
       border-bottom: 1px solid var(--border-color);
-      margin-bottom: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     }
     .user-profile-hero {
       text-align: center;
@@ -434,7 +435,7 @@
       font-size: 1.25rem;
       cursor: pointer;
       transition: all 0.2s ease;
-      z-index: 10;
+      z-index: 5;
     }
     .btn-profile-dots:hover, .btn-profile-dots:active {
       background: rgba(245, 158, 11, 0.2);
@@ -598,13 +599,13 @@
       <!-- Dropdown Menu for User (Image 4) -->
       <div id="admin-user-menu" class="admin-user-dropdown hidden">
         <div class="admin-user-menu-item" onclick="adminOpenUserPhoto()">
-          <span>🖼️</span> Open photo
+          <span>🖼️</span> Rasmni ochish
         </div>
         <div class="admin-user-menu-item" onclick="adminOpenAddCoinsModal()">
           <span>🪙</span> Tangalar qo'shish
         </div>
         <div class="admin-user-menu-item" onclick="adminOpenSendGiftModal()">
-          <span>🎁</span> Send a gift
+          <span>🎁</span> Sovg'a yuborish
         </div>
         <div class="admin-user-menu-item" onclick="adminOpenPaymentHistoryModal()">
           <span>💳</span> To'lovlar tarixi
@@ -659,8 +660,8 @@
   </div>
 
   <!-- Modal: Nomni o'zgartirish (Rename Track Modal) -->
-  <div id="modal-rename" class="hidden" onclick="if(event.target === this) closeRenameModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(5px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;">
-    <div style="width:100%; max-width:380px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.6);">
+  <div id="modal-rename" class="hidden" onclick="if(event.target === this) closeRenameModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:380px; background:rgba(22, 27, 46, 0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.14); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.6);">
       <div style="font-weight:700; font-size:1.1rem; margin-bottom:6px; color:var(--text-main);">✏️ Nomni o'zgartirish</div>
       <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">Trek uchun yangi nom kiriting:</div>
       <input 
@@ -679,7 +680,7 @@
   </div>
 
   <!-- Modal: View User Photo (Open photo) -->
-  <div id="modal-admin-view-photo" class="hidden" onclick="if(event.target === this) closeAdminViewPhotoModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+  <div id="modal-admin-view-photo" class="hidden" onclick="if(event.target === this) closeAdminViewPhotoModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
     <div style="position:relative; max-width:90vw; max-height:85vh; text-align:center;">
       <button onclick="closeAdminViewPhotoModal()" style="position:absolute; top:-14px; right:-14px; width:36px; height:36px; border-radius:50%; background:#222; border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10;">✕</button>
       <img id="admin-view-photo-img" src="" alt="Foydalanuvchi rasmi" style="max-width:85vw; max-height:75vh; border-radius:16px; object-fit:contain; box-shadow:0 15px 35px rgba(0,0,0,0.8); border:2px solid rgba(255,255,255,0.15);">
@@ -687,8 +688,8 @@
   </div>
 
   <!-- Modal: Add Coins to User -->
-  <div id="modal-admin-add-coins" class="hidden" onclick="if(event.target === this) closeAdminAddCoinsModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
-    <div style="width:100%; max-width:400px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7);">
+  <div id="modal-admin-add-coins" class="hidden" onclick="if(event.target === this) closeAdminAddCoinsModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:400px; background:rgba(22, 27, 46, 0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.14); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div style="font-weight:700; font-size:1.15rem; color:var(--text-main);">🪙 Tangalar Qo'shish</div>
         <button onclick="closeAdminAddCoinsModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
@@ -721,10 +722,10 @@
   </div>
 
   <!-- Modal: Send a gift to user (Image 4) -->
-  <div id="modal-admin-send-gift" class="hidden" onclick="if(event.target === this) closeAdminSendGiftModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
-    <div style="width:100%; max-width:400px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7);">
+  <div id="modal-admin-send-gift" class="hidden" onclick="if(event.target === this) closeAdminSendGiftModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:400px; background:rgba(22, 27, 46, 0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.14); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="font-weight:700; font-size:1.15rem; color:var(--text-main);">🎁 Sovg'a yuborish (Send a gift)</div>
+        <div style="font-weight:700; font-size:1.15rem; color:var(--text-main);">🎁 Sovg'a yuborish</div>
         <button onclick="closeAdminSendGiftModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
       </div>
       <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
@@ -760,8 +761,8 @@
   </div>
 
   <!-- Modal: To'lovlar tarixi (Image 4) -->
-  <div id="modal-admin-user-payments" class="hidden" onclick="if(event.target === this) closeAdminUserPaymentsModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
-    <div style="width:100%; max-width:440px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7); max-height:85vh; overflow-y:auto;">
+  <div id="modal-admin-user-payments" class="hidden" onclick="if(event.target === this) closeAdminUserPaymentsModal()" style="position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="width:100%; max-width:440px; background:rgba(22, 27, 46, 0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.14); border-radius:16px; padding:22px; box-shadow:0 15px 35px rgba(0,0,0,0.7); max-height:85vh; overflow-y:auto;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
         <div style="font-weight:700; font-size:1.15rem; color:var(--text-main);">💳 To'lovlar Tarixi</div>
         <button onclick="closeAdminUserPaymentsModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
@@ -1327,10 +1328,10 @@
       const remaining = Math.max(0, totalAllowed - used);
       const trialsEl = document.getElementById("fp-trials");
       if (remaining > 0) {
-        trialsEl.textContent = `${remaining} ta bepul qoldi (${used}/${totalAllowed} ishlatilgan)`;
+        trialsEl.textContent = `${remaining} ta (${used}/${totalAllowed} ishlatilgan)`;
         trialsEl.style.color = "var(--accent-emerald)";
       } else {
-        trialsEl.textContent = `Tugagan (${used} ta ishlatilgan)`;
+        trialsEl.textContent = `0 ta (${used}/${totalAllowed} ishlatilgan)`;
         trialsEl.style.color = "var(--danger-color)";
       }
 
