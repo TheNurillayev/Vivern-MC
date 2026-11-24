@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Vivern MC - Audio Production</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=20261123_11x">
+  <link rel="stylesheet" href="/static/css/app.css?v=20261124_v4">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -27,6 +27,16 @@
                 <stop offset="0%" stop-color="#f59e0b"/>
                 <stop offset="50%" stop-color="#ec4899"/>
                 <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+              <linearGradient id="vCoinGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fde68a" />
+                <stop offset="35%" stop-color="#f59e0b" />
+                <stop offset="75%" stop-color="#d97706" />
+                <stop offset="100%" stop-color="#b45309" />
+              </linearGradient>
+              <linearGradient id="vCoinInnerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fbbf24" />
+                <stop offset="100%" stop-color="#92400e" />
               </linearGradient>
             </defs>
             <ellipse class="f-ring-1" cx="20" cy="18" rx="14" ry="5.5" stroke="url(#cyberRingGrad)" stroke-width="1.8" stroke-dasharray="6 3" fill="none"/>
@@ -334,7 +344,14 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
           <span style="color: var(--text-muted);">Mening tangalarim:</span>
           <button type="button" id="acc-coins-btn" class="btn-balance-pill pill-gold" onclick="openCoinBalanceModal()">
-            <span id="acc-coins-status">0 Tanga</span> 🪙
+            <span id="acc-coins-status">0 Tanga</span>
+            <span class="v-coin-emblem" style="width: 17px; height: 17px;">
+              <svg viewBox="0 0 24 24" width="17" height="17">
+                <circle cx="12" cy="12" r="11" fill="url(#vCoinGoldGrad)" stroke="#fef3c7" stroke-width="0.8"/>
+                <circle cx="12" cy="12" r="8.8" fill="url(#vCoinInnerGrad)" stroke="#fde68a" stroke-width="0.7" stroke-dasharray="2 1.2"/>
+                <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+              </svg>
+            </span>
           </button>
         </div>
 
@@ -474,6 +491,20 @@
         </label>
       </div>
 
+      <!-- Day mode / Night mode (Image 1) -->
+      <div class="toggle-switch-wrapper" style="margin-bottom: 14px;">
+        <div>
+          <div style="font-weight: 600; font-size: 0.92rem; color: #fff;" id="theme-mode-title">🌓 Day mode / Night mode</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;" id="theme-mode-desc">
+            Kunduzgi (yorug') yoki tungi rejim
+          </div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="setting-toggle-theme" onchange="toggleThemeSetting(event)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
       <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; font-size: 0.82rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between;">
           <span>🌐 Ilova tili:</span>
@@ -570,7 +601,14 @@
     <div class="modal-card" style="text-align: left; max-width: 440px; max-height: 90vh; overflow-y: auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-          <span>🪙</span> Tanga Balansi va Xarid
+          <span class="v-coin-emblem" style="width:22px; height:22px;">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <circle cx="12" cy="12" r="11" fill="url(#vCoinGoldGrad)" stroke="#fef3c7" stroke-width="0.8"/>
+              <circle cx="12" cy="12" r="8.8" fill="url(#vCoinInnerGrad)" stroke="#fde68a" stroke-width="0.7" stroke-dasharray="2 1.2"/>
+              <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+            </svg>
+          </span>
+          Tanga Balansi va Xarid
         </div>
         <button onclick="closeCoinBalanceModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
       </div>
@@ -578,8 +616,8 @@
       <!-- Current Coins Display -->
       <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 14px; padding: 16px; margin-bottom: 16px; text-align: center;">
         <div style="font-size: 0.8rem; color: var(--text-muted);">Sizning hisobingizdagi tangalar:</div>
-        <div id="modal-coin-count" style="font-size: 2.2rem; font-weight: 800; color: #fbbf24; margin: 4px 0;">
-          0 Tanga
+        <div id="modal-coin-count" style="font-size: 2.2rem; font-weight: 800; color: #fbbf24; margin: 4px 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>0 Tanga</span>
         </div>
         <div style="font-size: 0.78rem; color: var(--text-muted);">
           ⚡ 1 ta professional audio montaj = <b>10 Tanga</b>
@@ -595,7 +633,16 @@
         <!-- Primary 10 Tanga Package -->
         <div class="coin-pkg-card selected" id="pkg-10" onclick="selectCoinPackage(10, 5000, '10 Tanga', this)">
           <div>
-            <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 10 Tanga</div>
+            <div style="font-weight: 700; font-size: 0.92rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+              <span class="v-coin-emblem" style="width:16px; height:16px;">
+                <svg viewBox="0 0 24 24" width="16" height="16">
+                  <circle cx="12" cy="12" r="11" fill="url(#vCoinGoldGrad)" stroke="#fef3c7" stroke-width="0.8"/>
+                  <circle cx="12" cy="12" r="8.8" fill="url(#vCoinInnerGrad)" stroke="#fde68a" stroke-width="0.7" stroke-dasharray="2 1.2"/>
+                  <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+                </svg>
+              </span>
+              10 Tanga
+            </div>
             <div style="font-size: 0.75rem; color: var(--text-muted);">1 ta to'liq audio montaj</div>
           </div>
           <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">5,000 so'm</div>
@@ -613,7 +660,16 @@
         <div id="container-other-packages" class="hidden" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
           <div class="coin-pkg-card" id="pkg-30" onclick="selectCoinPackage(30, 14000, '30 Tanga', this)">
             <div>
-              <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 30 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-7%</span></div>
+              <div style="font-weight: 700; font-size: 0.92rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+                <span class="v-coin-emblem" style="width:16px; height:16px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <circle cx="12" cy="12" r="11" fill="url(#vCoinGoldGrad)" stroke="#fef3c7" stroke-width="0.8"/>
+                    <circle cx="12" cy="12" r="8.8" fill="url(#vCoinInnerGrad)" stroke="#fde68a" stroke-width="0.7" stroke-dasharray="2 1.2"/>
+                    <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+                  </svg>
+                </span>
+                30 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-7%</span>
+              </div>
               <div style="font-size: 0.75rem; color: var(--text-muted);">3 ta montaj (1,000 so'm tejash)</div>
             </div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">14,000 so'm</div>
@@ -621,7 +677,16 @@
 
           <div class="coin-pkg-card" id="pkg-50" onclick="selectCoinPackage(50, 22000, '50 Tanga', this)">
             <div>
-              <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">🪙 50 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-12%</span></div>
+              <div style="font-weight: 700; font-size: 0.92rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+                <span class="v-coin-emblem" style="width:16px; height:16px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <circle cx="12" cy="12" r="11" fill="url(#vCoinGoldGrad)" stroke="#fef3c7" stroke-width="0.8"/>
+                    <circle cx="12" cy="12" r="8.8" fill="url(#vCoinInnerGrad)" stroke="#fde68a" stroke-width="0.7" stroke-dasharray="2 1.2"/>
+                    <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+                  </svg>
+                </span>
+                50 Tanga <span style="font-size:0.68rem; background:rgba(16,185,129,0.2); color:#6ee7b7; padding:2px 6px; border-radius:6px;">-12%</span>
+              </div>
               <div style="font-size: 0.75rem; color: var(--text-muted);">5 ta montaj (3,000 so'm tejash)</div>
             </div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">22,000 so'm</div>
@@ -629,9 +694,20 @@
 
           <div class="coin-pkg-card" id="pkg-100" onclick="selectCoinPackage(100, 40000, '100 Tanga', this)">
             <div>
-              <div style="font-weight: 700; font-size: 0.92rem; color: #fff;">👑 100 Tanga <span style="font-size:0.68rem; background:rgba(245,158,11,0.2); color:#fbbf24; padding:2px 6px; border-radius:6px;">VIP -20%</span></div>
+              <div style="font-weight: 700; font-size: 0.92rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+                <span class="v-coin-emblem" style="width:16px; height:16px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <circle cx="12" cy="12" r="11" fill="url(#vCoinGoldGrad)" stroke="#fef3c7" stroke-width="0.8"/>
+                    <circle cx="12" cy="12" r="8.8" fill="url(#vCoinInnerGrad)" stroke="#fde68a" stroke-width="0.7" stroke-dasharray="2 1.2"/>
+                    <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+                  </svg>
+                </span>
+                100 Tanga <span style="font-size:0.68rem; background:rgba(245,158,11,0.2); color:#fbbf24; padding:2px 6px; border-radius:6px;">VIP -20%</span>
+              </div>
               <div style="font-size: 0.75rem; color: var(--text-muted);">10 ta montaj (10,000 so'm tejash)</div>
             </div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">40,000 so'm</div>
+          </div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">40,000 so'm</div>
           </div>
         </div>
@@ -662,10 +738,10 @@
             To'langan tarifni tasdiqlang:
           </label>
           <select id="receipt-package-select" onchange="onReceiptDropdownChange(this)" style="width: 100%; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; font-size: 0.88rem; box-sizing: border-box;">
-            <option value="10" data-price="5000" data-name="10 Tanga" selected>🪙 10 Tanga — 5,000 so'm</option>
-            <option value="30" data-price="14000" data-name="30 Tanga">🪙 30 Tanga — 14,000 so'm (-7%)</option>
-            <option value="50" data-price="22000" data-name="50 Tanga">🪙 50 Tanga — 22,000 so'm (-12%)</option>
-            <option value="100" data-price="40000" data-name="100 Tanga">👑 100 Tanga — 40,000 so'm (VIP -20%)</option>
+            <option value="10" data-price="5000" data-name="10 Tanga" selected>10 Tanga — 5,000 so'm</option>
+            <option value="30" data-price="14000" data-name="30 Tanga">30 Tanga — 14,000 so'm (-7%)</option>
+            <option value="50" data-price="22000" data-name="50 Tanga">50 Tanga — 22,000 so'm (-12%)</option>
+            <option value="100" data-price="40000" data-name="100 Tanga">100 Tanga — 40,000 so'm (VIP -20%)</option>
           </select>
         </div>
 
@@ -783,6 +859,6 @@
     </a>
   </nav>
 
-  <script src="/static/js/app.js?v=20261123_11x"></script>
+  <script src="/static/js/app.js?v=20261124_v4"></script>
 </body>
 </html>

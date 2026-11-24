@@ -15,6 +15,7 @@ class User(Base):
     trial_count: Mapped[int] = mapped_column(Integer, default=0) # Number of free generations used
     extra_trials: Mapped[int] = mapped_column(Integer, default=0) # Extra bonus/gift trials
     coins: Mapped[int] = mapped_column(Integer, default=0) # Coin balance (10 coins per order)
+    total_paid_som: Mapped[int] = mapped_column(Integer, default=0) # Total amount paid in UZS
     save_trials: Mapped[bool] = mapped_column(Boolean, default=False) # True = save trials for later (deactivated)
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False) # Admin ban status
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Vivern MC - Admin Panel</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=20261123_11x">
+  <link rel="stylesheet" href="/static/css/app.css?v=20261124_v4">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     /* Two Primary Horizontal Admin Navigation Buttons */
@@ -421,30 +421,31 @@
     .btn-back-miniapp:hover .btn-back-arrow {
       transform: translateX(-2px);
     }
-    /* 3-Dots Menu Button in Admin User Profile (Image 4) */
+    /* 3-Dots Menu Button in Admin User Profile (Image 4) - Perfectly Centered SVG */
     .btn-profile-dots {
       position: absolute;
       top: 14px;
       right: 14px;
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.16);
       color: var(--text-main);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
+      padding: 0;
+      line-height: 0;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
       z-index: 5;
     }
     .btn-profile-dots:hover, .btn-profile-dots:active {
       background: rgba(245, 158, 11, 0.2);
       border-color: var(--accent-gold);
       color: #fff;
-      transform: scale(1.08);
+      transform: scale(1.06);
     }
     .admin-user-dropdown {
       position: absolute;
@@ -594,9 +595,13 @@
     </div>
 
     <div class="user-profile-hero" style="position: relative;">
-      <!-- 3-Dots Action Button (Image 4) -->
+      <!-- 3-Dots Action Button (Image 4) - Pixel Perfect Centered SVG -->
       <button type="button" class="btn-profile-dots" onclick="toggleAdminUserMenu(event)" title="Qo'shimcha amallar">
-        ⋮
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <circle cx="12" cy="5" r="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="12" cy="19" r="2"/>
+        </svg>
       </button>
 
       <!-- Dropdown Menu for User (Image 4) -->
@@ -605,7 +610,17 @@
           <span>🖼️</span> Rasmni ochish
         </div>
         <div class="admin-user-menu-item" onclick="adminOpenAddCoinsModal()">
-          <span>🪙</span> Tangalar qo'shish
+          <span style="display:inline-flex; align-items:center;">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <defs>
+                <linearGradient id="vGoldM" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fde68a"/><stop offset="50%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/>
+                </linearGradient>
+              </defs>
+              <circle cx="12" cy="12" r="11" fill="url(#vGoldM)" stroke="#fef3c7" stroke-width="0.8"/>
+              <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+            </svg>
+          </span> Tangalar qo'shish
         </div>
         <div class="admin-user-menu-item" onclick="adminOpenSendGiftModal()">
           <span>🎁</span> Sovg'a yuborish
@@ -629,7 +644,13 @@
 
     <div class="user-meta-stats-grid">
       <div class="meta-stat-cell">
-        <span class="meta-stat-label">🪙 Tangalar Balansi</span>
+        <span class="meta-stat-label" style="display:inline-flex; align-items:center; gap:5px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" style="vertical-align:middle;">
+            <circle cx="12" cy="12" r="11" fill="url(#vGoldM)" stroke="#fef3c7" stroke-width="0.8"/>
+            <path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/>
+          </svg>
+          Tangalar Balansi
+        </span>
         <span class="meta-stat-value" id="fp-coins" style="color:#fbbf24; font-weight:700;">0 ta Tanga</span>
       </div>
       <div class="meta-stat-cell">
@@ -1316,13 +1337,13 @@
       }
       document.getElementById("fp-fullname").textContent = fullName;
       document.getElementById("fp-username").textContent = user.username ? `@${user.username}` : "username yo'q";
-      document.getElementById("fp-id-badge").innerHTML = `🆔 ID: <span style="color:#fff; font-weight:600;">${user.id}</span>`;
+      document.getElementById("fp-id-badge").innerHTML = `ID: <span style="color:#fff; font-weight:600;">${user.id}</span>`;
 
       const roleBadgeEl = document.getElementById("fp-role-badge");
       if (user.is_admin) {
-        roleBadgeEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:12px; background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.35); color:var(--accent-gold); font-size:0.76rem; font-weight:600; letter-spacing:0.3px;">👑 Administrator</span>`;
+        roleBadgeEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:12px; background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.35); color:var(--accent-gold); font-size:0.76rem; font-weight:600; letter-spacing:0.3px;">Administrator</span>`;
       } else {
-        roleBadgeEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:12px; background:rgba(255, 255, 255, 0.05); border:1px solid rgba(255, 255, 255, 0.12); color:var(--text-muted); font-size:0.76rem; font-weight:500;">👤 Foydalanuvchi</span>`;
+        roleBadgeEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:12px; background:rgba(255, 255, 255, 0.05); border:1px solid rgba(255, 255, 255, 0.12); color:var(--text-muted); font-size:0.76rem; font-weight:500;">Foydalanuvchi</span>`;
       }
 
       const used = user.trial_count || 0;
@@ -1541,45 +1562,69 @@
       content.innerHTML = '<div style="text-align:center; padding:15px; color:var(--text-muted);"><div class="spinner"></div><div style="margin-top:6px; font-size:0.8rem;">To\'lovlar hisoblanmoqda...</div></div>';
 
       try {
-        const res = await fetch(`/api/admin/orders?user_id=${currentModalUser.id}`, {
+        const res = await fetch(`/api/admin/users/${currentModalUser.id}/payments`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
-        const orders = await res.json();
-        
-        const completedOrders = orders.filter(o => o.status === "completed");
-        const totalAllowedTrials = 3 + (currentModalUser.extra_trials || 0);
-        const usedTrials = Math.min(completedOrders.length, totalAllowedTrials);
-        const paidOrders = Math.max(0, completedOrders.length - usedTrials);
-        const totalPaid = paidOrders * 5000;
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Yuklab bo'lmadi");
+
+        const totalPaidSom = data.total_paid_som || 0;
+        const totalCoins = data.total_coins || 0;
+        const orders = data.orders || [];
+        const txs = data.transactions || [];
 
         content.innerHTML = `
           <div style="background:rgba(255,255,255,0.04); border:1px solid var(--border-color); border-radius:12px; padding:14px; margin-bottom:14px;">
             <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:4px;">Jami Tayyorlangan Buyurtmalar:</div>
-            <div style="font-size:1.3rem; font-weight:700; color:#fff;">${completedOrders.length} ta</div>
+            <div style="font-size:1.3rem; font-weight:700; color:#fff;">${data.completed_orders_count || 0} ta</div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-              (${usedTrials} ta bepul sinovlar hisobidan, ${paidOrders} ta pullik buyurtma)
+              (${data.used_trials || 0} ta bepul sinovlar hisobidan, ${data.paid_orders || 0} ta pullik buyurtma)
             </div>
           </div>
 
           <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:14px; margin-bottom:14px;">
             <div style="font-size:0.85rem; color:var(--accent-gold); font-weight:600; margin-bottom:4px;">Jami To'langan Mablag':</div>
-            <div style="font-size:1.4rem; font-weight:800; color:#fbbf24;">${totalPaid.toLocaleString()} so'm</div>
+            <div style="font-size:1.4rem; font-weight:800; color:#fbbf24; display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;">
+              <span>${totalPaidSom.toLocaleString()} so'm</span>
+              <span style="font-size:1.05rem; font-weight:600; color:#cbd5e1;">= ${totalCoins} Tanga</span>
+            </div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-              Tarif: 5,000 so'm / buyurtma
+              Tarif: 5,000 so'm / buyurtma (10 Tanga)
             </div>
           </div>
 
-          <div style="font-size:0.8rem; font-weight:600; margin-bottom:8px; color:var(--text-muted);">Buyurtmalar ro'yxati:</div>
-          ${orders.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-muted);">Hech qanday buyurtma mavjud emas.</div>' : `
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              ${orders.slice(0, 10).map((o, idx) => `
-                <div style="padding:10px; background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid rgba(255,255,255,0.06); font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <div style="font-weight:600; color:#fff;">#${o.id.substring(0, 8)} - ${o.special_music_name || 'Tabrik'}</div>
-                    <div style="font-size:0.72rem; color:var(--text-muted);">${o.created_at || ''}</div>
+          ${txs.length > 0 ? `
+            <div style="font-size:0.8rem; font-weight:600; margin-bottom:8px; color:var(--text-muted);">Tangalar xaridi tarixi:</div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+              ${txs.map(t => `
+                <div style="padding:10px 12px; background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid rgba(255,255,255,0.06); font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      +${t.coins} Tanga (${t.amount_som.toLocaleString()} so'm)
+                    </div>
+                    <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">${t.created_at || ''}</div>
                   </div>
-                  <div>
-                    ${idx < totalAllowedTrials ? '<span style="color:var(--accent-emerald); font-weight:600; font-size:0.75rem;">Bepul (Trial)</span>' : '<span style="color:var(--accent-gold); font-weight:600; font-size:0.75rem;">5,000 so\'m</span>'}
+                  <div style="flex-shrink:0; white-space:nowrap;">
+                    <span style="color:var(--accent-emerald); font-weight:600; font-size:0.75rem; background:rgba(16,185,129,0.15); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.3);">Tasdiqlangan</span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          ` : ''}
+
+          <div style="font-size:0.8rem; font-weight:600; margin-bottom:8px; color:var(--text-muted);">Buyurtmalar ro'yxati:</div>
+          ${orders.length === 0 ? '<div style="font-size:0.8rem; color:var(--text-muted); padding:10px 0;">Hech qanday buyurtma mavjud emas.</div>' : `
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${orders.slice(0, 15).map((o, idx) => `
+                <div style="padding:10px 12px; background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid rgba(255,255,255,0.06); font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="#${o.id.substring(0, 8)} - ${escapeHtml(o.name)}">
+                      #${o.id.substring(0, 8)} - ${escapeHtml(o.name)}
+                    </div>
+                    <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">${o.created_at || ''}</div>
+                  </div>
+                  <div style="flex-shrink:0; white-space:nowrap;">
+                    ${idx < (data.total_allowed_trials || 3) ? '<span style="color:var(--accent-emerald); font-weight:600; font-size:0.75rem; white-space:nowrap;">Bepul (Trial)</span>' : '<span style="color:var(--accent-gold); font-weight:600; font-size:0.75rem; white-space:nowrap;">5,000 so\'m</span>'}
                   </div>
                 </div>
               `).join("")}
@@ -1630,6 +1675,11 @@
         alert("Xatolik: " + err.message);
       }
     }
+
+    (function() {
+      const t = localStorage.getItem("vivern_theme");
+      if (t === "light") document.body.classList.add("light-theme");
+    })();
 
     document.addEventListener("DOMContentLoaded", initAdmin);
   </script>

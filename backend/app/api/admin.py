@@ -424,6 +424,19 @@ async def add_user_coins(
 
     coins_to_add = req.coins
     user.coins = max(0, (user.coins or 0) + coins_to_add)
+    try:
+        from backend.app.models.coin_transaction import CoinTransaction
+        tx = CoinTransaction(
+            user_id=user_id,
+            type="admin_add",
+            coins=coins_to_add,
+            amount_som=0,
+            description=f"Admin tomonidan qo'shildi ({coins_to_add} Tanga)",
+            status="completed"
+        )
+        db.add(tx)
+    except Exception:
+        pass
     await db.commit()
     await db.refresh(user)
 
@@ -447,6 +460,76 @@ async def add_user_coins(
         "user_id": user_id,
         "coins": user.coins,
         "added": coins_to_add
+    }
+
+@router.get("/users/{user_id}/payments")
+async def get_user_payment_history(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns detailed payment history for a user: completed orders, free vs paid, and coin purchases."""
+    from backend.app.models.coin_transaction import CoinTransaction
+
+    res = await db.execute(select(User).where(User.id == user_id))
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    # Fetch orders
+    orders_res = await db.execute(
+        select(Order).where(Order.user_id == user_id).order_by(Order.created_at.desc())
+    )
+    orders = orders_res.scalars().all()
+
+    # Fetch coin transactions
+    tx_res = await db.execute(
+        select(CoinTransaction).where(CoinTransaction.user_id == user_id).order_by(CoinTransaction.created_at.desc())
+    )
+    transactions = tx_res.scalars().all()
+
+    completed_orders = [o for o in orders if o.status == "completed"]
+    total_allowed_trials = 3 + (user.extra_trials or 0)
+    used_trials = min(len(completed_orders), total_allowed_trials)
+    paid_orders = max(0, len(completed_orders) - used_trials)
+    paid_orders_som = paid_orders * 5000
+
+    tx_total_som = sum(t.amount_som for t in transactions if t.status == "completed")
+    tx_total_coins = sum(t.coins for t in transactions if t.status == "completed" and t.coins > 0)
+
+    effective_total_paid = max(user.total_paid_som or 0, tx_total_som) + paid_orders_som
+    effective_total_coins = max(user.coins or 0, tx_total_coins)
+
+    return {
+        "user_id": user_id,
+        "completed_orders_count": len(completed_orders),
+        "used_trials": used_trials,
+        "paid_orders": paid_orders,
+        "total_allowed_trials": total_allowed_trials,
+        "total_paid_som": effective_total_paid,
+        "total_coins": effective_total_coins,
+        "current_coins": user.coins or 0,
+        "transactions": [
+            {
+                "id": t.id,
+                "type": t.type,
+                "coins": t.coins,
+                "amount_som": t.amount_som,
+                "description": t.description,
+                "status": t.status,
+                "created_at": t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else ""
+            }
+            for t in transactions
+        ],
+        "orders": [
+            {
+                "id": o.id,
+                "name": o.special_music_name or o.audio_title or "Tabrik",
+                "status": o.status,
+                "created_at": o.created_at.strftime("%Y-%m-%d %H:%M") if o.created_at else ""
+            }
+            for o in orders
+        ]
     }
 
 @router.get("/costs/summary")

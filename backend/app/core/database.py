@@ -53,6 +53,7 @@ async def init_db():
             ("avatar_path", "VARCHAR(512)"),
             ("extra_trials", "INTEGER DEFAULT 0"),
             ("coins", "INTEGER DEFAULT 0"),
+            ("total_paid_som", "INTEGER DEFAULT 0"),
             ("save_trials", "BOOLEAN DEFAULT 0"),
             ("is_blocked", "BOOLEAN DEFAULT 0")
         ]:
@@ -60,6 +61,27 @@ async def init_db():
                 await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
             except Exception:
                 pass
+
+        # Backfill existing coin purchases into total_paid_som & coin_transactions
+        try:
+            pricing_map = {10: 5000, 30: 14000, 50: 22000, 100: 40000}
+            users_with_coins = await conn.execute(text("SELECT id, coins, total_paid_som FROM users WHERE coins > 0"))
+            for uid, c_val, p_val in users_with_coins.fetchall():
+                if not p_val or p_val == 0:
+                    est_som = pricing_map.get(c_val, c_val * 500)
+                    await conn.execute(text(f"UPDATE users SET total_paid_som = {est_som} WHERE id = {uid}"))
+                    tx_check = await conn.execute(text(f"SELECT COUNT(*) FROM coin_transactions WHERE user_id = {uid}"))
+                    if tx_check.scalar() == 0:
+                        import uuid, datetime
+                        tx_id = str(uuid.uuid4())
+                        now_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                        desc = f"To'lov cheki orqali ({c_val} Tanga)"
+                        await conn.execute(text(
+                            f"INSERT INTO coin_transactions (id, user_id, type, coins, amount_som, description, status, created_at) "
+                            f"VALUES ('{tx_id}', {uid}, 'purchase', {c_val}, {est_som}, '{desc}', 'completed', '{now_str}')"
+                        ))
+        except Exception:
+            pass
 
         # Unstick any pending orders that were waiting in payment_required
         try:

@@ -153,16 +153,21 @@ async def send_receipt_to_admins(
     caption: str,
     is_image: bool = True,
     user_id: int = 0,
-    coins: int = 10
+    coins: int = 10,
+    amount_som: int = 0
 ):
     """Deliver payment receipt directly into administrators' chats with Cancel, Confirm, Admin Panel buttons."""
+    if amount_som <= 0:
+        pricing = {10: 5000, 30: 14000, 50: 22000, 100: 40000}
+        amount_som = pricing.get(coins, coins * 500)
+
     doc = FSInputFile(file_path)
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Cancel", callback_data=f"rcpt:cancel:{user_id}:{coins}"),
-                InlineKeyboardButton(text="Confirm", callback_data=f"rcpt:confirm:{user_id}:{coins}"),
-                InlineKeyboardButton(text="Admin Panel", callback_data=f"rcpt:ap:{user_id}:{coins}")
+                InlineKeyboardButton(text="Cancel", callback_data=f"rcpt:cancel:{user_id}:{coins}:{amount_som}"),
+                InlineKeyboardButton(text="Confirm", callback_data=f"rcpt:confirm:{user_id}:{coins}:{amount_som}"),
+                InlineKeyboardButton(text="Admin Panel", callback_data=f"rcpt:ap:{user_id}:{coins}:{amount_som}")
             ]
         ]
     )
@@ -190,6 +195,10 @@ async def handle_receipt_callback(callback: types.CallbackQuery):
     action = parts[1]        # "cancel", "confirm", "ap"
     target_user_id = int(parts[2])
     coins = int(parts[3])
+    amount_som = int(parts[4]) if len(parts) > 4 else 0
+    if amount_som <= 0:
+        pricing = {10: 5000, 30: 14000, 50: 22000, 100: 40000}
+        amount_som = pricing.get(coins, coins * 500)
 
     if action == "cancel":
         # 3 buttons disappear, "Canceled" appears
@@ -215,16 +224,28 @@ async def handle_receipt_callback(callback: types.CallbackQuery):
         await callback.answer("Foydalanuvchi talabi bekor qilindi (Canceled)")
 
     elif action == "confirm":
-        # Automatically add coins to user in DB
+        # Automatically add coins to user in DB and record transaction
         new_coins = coins
         try:
+            from backend.app.models.coin_transaction import CoinTransaction
             async with AsyncSessionLocal() as session:
                 res = await session.execute(select(User).where(User.id == target_user_id))
                 target_user = res.scalar_one_or_none()
                 if target_user:
                     target_user.coins = max(0, (target_user.coins or 0) + coins)
-                    await session.commit()
+                    target_user.total_paid_som = max(0, (target_user.total_paid_som or 0) + amount_som)
                     new_coins = target_user.coins
+
+                    tx = CoinTransaction(
+                        user_id=target_user_id,
+                        type="purchase",
+                        coins=coins,
+                        amount_som=amount_som,
+                        description=f"To'lov cheki orqali ({coins} Tanga)",
+                        status="completed"
+                    )
+                    session.add(tx)
+                    await session.commit()
         except Exception as e:
             logger.error(f"Error adding coins to user {target_user_id}: {e}")
 

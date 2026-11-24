@@ -402,7 +402,8 @@ async def submit_coin_receipt(
             caption,
             is_image=is_image,
             user_id=current_user.id,
-            coins=coins
+            coins=coins,
+            amount_som=amount_som
         )
     except Exception as e:
         import logging

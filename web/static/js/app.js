@@ -324,13 +324,18 @@
     if (modal) modal.classList.add("hidden");
   };
 
-  // Modal: Settings (Image 2)
+  // Modal: Settings (Image 1 & 2)
   window.openUserSettingsModal = function () {
     const modal = document.getElementById("modal-user-settings");
     const notifToggle = document.getElementById("setting-toggle-notifs");
     if (notifToggle) {
       const stored = localStorage.getItem("vivern_notifications_enabled");
       notifToggle.checked = stored === null ? true : stored === "true";
+    }
+    const themeToggle = document.getElementById("setting-toggle-theme");
+    if (themeToggle) {
+      const currentTheme = localStorage.getItem("vivern_theme") || "dark";
+      themeToggle.checked = currentTheme === "light";
     }
     if (modal) modal.classList.remove("hidden");
   };
@@ -343,6 +348,46 @@
   window.toggleNotificationsSetting = function (e) {
     localStorage.setItem("vivern_notifications_enabled", e.target.checked);
   };
+
+  // Day mode / Night mode (Image 1)
+  window.toggleThemeSetting = function (e) {
+    const isLight = e.target.checked;
+    applyTheme(isLight ? "light" : "dark");
+  };
+
+  function applyTheme(theme) {
+    localStorage.setItem("vivern_theme", theme);
+    if (theme === "light") {
+      document.body.classList.add("light-theme");
+    } else {
+      document.body.classList.remove("light-theme");
+    }
+    const themeToggle = document.getElementById("setting-toggle-theme");
+    if (themeToggle) themeToggle.checked = (theme === "light");
+
+    if (window.Telegram?.WebApp) {
+      try {
+        const bg = theme === "light" ? "#f3f5f9" : "#0f111a";
+        window.Telegram.WebApp.setHeaderColor(bg);
+        window.Telegram.WebApp.setBackgroundColor(bg);
+        if (window.Telegram.WebApp.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred("light");
+        }
+      } catch (err) {}
+    }
+  }
+
+  function initTheme() {
+    const saved = localStorage.getItem("vivern_theme");
+    if (saved) {
+      applyTheme(saved);
+    } else if (window.Telegram?.WebApp?.colorScheme === "light") {
+      applyTheme("light");
+    } else {
+      applyTheme("dark");
+    }
+  }
+  initTheme();
 
   // Modal: Trial Balance (Image 3)
   window.openTrialBalanceModal = function () {
@@ -433,7 +478,7 @@
     const modal = document.getElementById("modal-coin-balance");
     const countEl = document.getElementById("modal-coin-count");
     if (countEl) {
-      countEl.textContent = `${currentUser?.coins || 0} Tanga`;
+      countEl.innerHTML = `<span>${currentUser?.coins || 0} Tanga</span> <span class="v-coin-emblem" style="width:26px; height:26px;"><svg viewBox="0 0 24 24" width="26" height="26"><circle cx="12" cy="12" r="11" fill="url(#vCoinGoldGrad)" stroke="#fef3c7" stroke-width="0.8"/><circle cx="12" cy="12" r="8.8" fill="url(#vCoinInnerGrad)" stroke="#fde68a" stroke-width="0.7" stroke-dasharray="2 1.2"/><path d="M7.8 7.5 L10.5 15.6 C10.8 16.5 11.4 17 12 17 C12.6 17 13.2 16.5 13.5 15.6 L16.2 7.5 C16.5 6.8 15.9 6.2 15.2 6.2 C14.7 6.2 14.3 6.6 14.1 7.1 L12 13.3 L9.9 7.1 C9.7 6.6 9.3 6.2 8.8 6.2 C8.1 6.2 7.5 6.8 7.8 7.5 Z" fill="#fff"/></svg></span>`;
     }
     if (modal) modal.classList.remove("hidden");
   };
@@ -1374,6 +1419,7 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    initTheme();
     initAuth();
     setupUploadInputs();
     loadLibraryMusicOptions();
