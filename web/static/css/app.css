@@ -616,9 +616,9 @@ main {
 }
 
 .modal-card, .admin-modal-card {
-  background: rgba(22, 27, 46, 0.78);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(22, 27, 46, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 18px;
   padding: 24px;
@@ -626,27 +626,6 @@ main {
   max-width: 380px;
   text-align: center;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  animation: modalPop 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* Modal Opening Animation (1.25x Spring Peak) */
-@keyframes modalPop {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  55% {
-    transform: scale(1.25);
-    opacity: 1;
-  }
-  78% {
-    transform: scale(0.97);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
 
 .btn-secondary {
@@ -656,28 +635,6 @@ main {
 }
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.12);
-}
-
-/* ========================================================
-   6. iPhone / iOS Peak Smoothness Micro-Interactions
-   ======================================================== */
-html, body, .tab-content, .modal-card, .admin-modal-card {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-}
-
-button, .btn, .card, .tab-btn, .btn-balance-pill, .coin-pkg-card, .admin-nav-card, .btn-profile-action, .btn-profile-dots {
-  transition: transform 0.18s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-button:active, .btn:active, .btn-balance-pill:active, .coin-pkg-card:active, .btn-profile-action:active, .btn-profile-dots:active {
-  transform: scale(0.97) !important;
-}
-
-.tab-btn:active {
-  transform: scale(0.92) !important;
 }
 
 /* Custom V-Coin Emblem Component */
