@@ -23,6 +23,10 @@ async def create_order(
     original_recording: UploadFile = File(...),
     special_music: UploadFile = File(...),
     audio_title: Optional[str] = Form(None),
+    is_video_mode: Optional[bool] = Form(False),
+    video_photos: Optional[List[UploadFile]] = File(None),
+    host_video: Optional[UploadFile] = File(None),
+    host_video_position: Optional[str] = Form("intro"),
     custom_wishes_start_seconds: Optional[float] = Form(None),
     custom_call_ending_seconds: Optional[float] = Form(None),
     custom_starter_track_id: Optional[str] = Form(None),
@@ -115,6 +119,66 @@ async def create_order(
     if os.path.exists(tmp_spec_path):
         os.remove(tmp_spec_path)
 
+    # Handle Video Mode uploads (photos + host promo video)
+    import json
+    saved_photo_paths = []
+    saved_host_video_path = ""
+
+    if is_video_mode:
+        valid_photos = [p for p in (video_photos or []) if p.filename and len(p.filename.strip()) > 0]
+        if len(valid_photos) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Video tabrik uchun kamida 10 ta rasm yuklanishi kerak (hozir: {len(valid_photos)} ta)."
+            )
+        if len(valid_photos) > 70:
+            valid_photos = valid_photos[:70]
+
+        from PIL import Image
+        for p_idx, p_file in enumerate(valid_photos):
+            p_ext = os.path.splitext(p_file.filename or "")[1] or ".jpg"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=p_ext) as tmp_p:
+                tmp_p_path = tmp_p.name
+                shutil.copyfileobj(p_file.file, tmp_p)
+
+            try:
+                with Image.open(tmp_p_path) as im:
+                    im.verify()
+            except Exception:
+                if os.path.exists(tmp_p_path):
+                    os.remove(tmp_p_path)
+                continue
+
+            saved_p_path = storage_service.save_customer_photo(
+                source_path=tmp_p_path,
+                order_id=order_id,
+                index=p_idx,
+                original_filename=p_file.filename or f"photo_{p_idx}.jpg"
+            )
+            saved_photo_paths.append(saved_p_path)
+            if os.path.exists(tmp_p_path):
+                os.remove(tmp_p_path)
+
+        if len(saved_photo_paths) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Kamida 10 ta yaroqli rasm bo'lishi kerak. Qayta tekshirib yuklang."
+            )
+
+        if host_video and host_video.filename and len(host_video.filename.strip()) > 0:
+            hv_ext = os.path.splitext(host_video.filename or "")[1] or ".mp4"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=hv_ext) as tmp_hv:
+                tmp_hv_path = tmp_hv.name
+                shutil.copyfileobj(host_video.file, tmp_hv)
+
+            saved_host_video_path = storage_service.save_host_video(
+                source_path=tmp_hv_path,
+                order_id=order_id,
+                original_filename=host_video.filename or "host_video.mp4"
+            )
+            if os.path.exists(tmp_hv_path):
+                os.remove(tmp_hv_path)
+
     # Create Order record in DB
     order = Order(
         id=order_id,
@@ -130,6 +194,10 @@ async def create_order(
         custom_starter_track_id=custom_starter_track_id,
         custom_wishes_track_id=custom_wishes_track_id,
         custom_ending_track_id=custom_ending_track_id,
+        is_video_mode=bool(is_video_mode),
+        video_photos_json=json.dumps(saved_photo_paths),
+        host_video_path=saved_host_video_path,
+        host_video_position=host_video_position or "intro",
         price_som=price,
         is_free_trial=is_free,
         is_paid=is_free  # Trial orders are automatically considered paid
@@ -236,6 +304,34 @@ async def download_output_audio(
         }
     )
 
+@router.get("/{order_id}/download-video")
+async def download_output_video(
+    order_id: str,
+    token: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(Order).where(Order.id == order_id))
+    order = res.scalar_one_or_none()
+    if not order or not order.output_video_path or not os.path.exists(order.output_video_path):
+        raise HTTPException(status_code=404, detail="Video fayl hali tayyor emas yoki topilmadi")
+
+    import re
+    if order.audio_title and order.audio_title.strip():
+        safe_title = re.sub(r'[^\w\s-]', '', order.audio_title).strip()
+        safe_title = re.sub(r'[-\s]+', '_', safe_title)
+        filename = f"{safe_title}.mp4" if safe_title else f"Vivern_MC_Video_{order_id[:8]}.mp4"
+    else:
+        filename = f"Vivern_MC_Video_{order_id[:8]}.mp4"
+
+    return FileResponse(
+        order.output_video_path,
+        media_type="video/mp4",
+        filename=filename,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
 @router.delete("/{order_id}")
 async def delete_order(
     order_id: str,
@@ -251,7 +347,22 @@ async def delete_order(
         raise HTTPException(status_code=403, detail="Ruxsat berilmadi: siz bu buyurtma egasi emassiz")
 
     # Clean up physical files from disk
-    for f_path in [order.original_recording_path, order.special_music_path, order.output_audio_path]:
+    files_to_clean = [
+        order.original_recording_path,
+        order.special_music_path,
+        order.output_audio_path,
+        order.output_video_path,
+        order.host_video_path
+    ]
+    import json
+    try:
+        photos = json.loads(order.video_photos_json or "[]")
+        if isinstance(photos, list):
+            files_to_clean.extend(photos)
+    except Exception:
+        pass
+
+    for f_path in files_to_clean:
         if f_path and os.path.exists(f_path):
             try:
                 os.remove(f_path)

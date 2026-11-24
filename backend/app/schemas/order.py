@@ -10,6 +10,7 @@ class OrderCreateResponse(BaseModel):
     special_music_name: str
     price_som: int
     is_free_trial: bool
+    is_video_mode: bool = False
     created_at: datetime.datetime
 
     class Config:
@@ -22,6 +23,8 @@ class OrderDetailResponse(BaseModel):
     original_recording_name: str
     special_music_name: str
     output_audio_duration: float
+    is_video_mode: bool = False
+    output_video_duration: float = 0.0
     price_som: int
     is_free_trial: bool
     is_paid: bool

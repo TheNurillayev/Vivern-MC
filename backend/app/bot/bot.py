@@ -148,6 +148,17 @@ async def send_delivery_audio(chat_id: int, audio_path: str, caption: str, title
         kwargs["title"] = title
     return await bot.send_audio(**kwargs)
 
+async def send_delivery_video(chat_id: int, video_path: str, caption: str):
+    """Deliver completed video production directly into customer's chat."""
+    video_file = FSInputFile(video_path)
+    return await bot.send_video(
+        chat_id=chat_id,
+        video=video_file,
+        caption=caption,
+        parse_mode="Markdown",
+        supports_streaming=True
+    )
+
 async def send_receipt_to_admins(
     file_path: str,
     caption: str,

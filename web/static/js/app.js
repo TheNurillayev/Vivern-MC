@@ -5,6 +5,9 @@
   let authToken = null;
   let originalFile = null;
   let specialFile = null;
+  let isVideoModeActive = false;
+  let selectedVideoPhotos = [];
+  let hostVideoFile = null;
 
   if (tg) {
     tg.ready();
@@ -981,6 +984,113 @@
     }
   };
 
+  /* -------------------------------------------------------------
+     Video Mode UI & Handlers
+     ------------------------------------------------------------- */
+  window.toggleVideoMode = function () {
+    isVideoModeActive = !isVideoModeActive;
+    const toggleBtn = document.getElementById("btn-toggle-video-mode");
+    const videoSection = document.getElementById("card-video-mode-section");
+    const submitBtn = document.getElementById("btn-submit-order");
+
+    if (toggleBtn) {
+      toggleBtn.classList.toggle("active", isVideoModeActive);
+    }
+    if (videoSection) {
+      if (isVideoModeActive) {
+        videoSection.classList.remove("hidden");
+      } else {
+        videoSection.classList.add("hidden");
+      }
+    }
+    if (submitBtn) {
+      submitBtn.innerHTML = isVideoModeActive ? "🚀 Video Tabrik Yaratish" : "🚀 Audio Yaratish";
+    }
+  };
+
+  window.handleVideoPhotosSelected = function (e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    for (const f of files) {
+      if (!selectedVideoPhotos.some(p => p.name === f.name && p.size === f.size)) {
+        if (selectedVideoPhotos.length < 70) {
+          selectedVideoPhotos.push(f);
+        }
+      }
+    }
+    renderVideoPhotosGallery();
+  };
+
+  window.removeSelectedPhoto = function (idx) {
+    selectedVideoPhotos.splice(idx, 1);
+    renderVideoPhotosGallery();
+  };
+
+  window.clearSelectedPhotos = function () {
+    selectedVideoPhotos = [];
+    const input = document.getElementById("input-video-photos");
+    if (input) input.value = "";
+    renderVideoPhotosGallery();
+  };
+
+  function renderVideoPhotosGallery() {
+    const countBadge = document.getElementById("photo-counter-badge");
+    const prevContainer = document.getElementById("video-photos-preview-container");
+    const statusText = document.getElementById("video-photos-status-text");
+    const grid = document.getElementById("video-photos-grid");
+
+    if (!countBadge || !prevContainer || !grid) return;
+
+    const count = selectedVideoPhotos.length;
+    countBadge.textContent = `${count} / 70 ta`;
+
+    if (count === 0) {
+      prevContainer.classList.add("hidden");
+      grid.innerHTML = "";
+      return;
+    }
+
+    prevContainer.classList.remove("hidden");
+
+    if (count < 10) {
+      statusText.innerHTML = `<span style="color:#ef4444;">⚠️ Yana kamida ${10 - count} ta rasm qo'shing (${count}/10)</span>`;
+    } else if (count >= 10 && count <= 70) {
+      statusText.innerHTML = `<span style="color:var(--accent-emerald);">✅ ${count} ta rasm tayyor (har 4s, 3-rasmda effekt)</span>`;
+    } else {
+      statusText.innerHTML = `<span style="color:#f59e0b;">⚠️ 70 ta rasm me'yori to'ldi</span>`;
+    }
+
+    grid.innerHTML = selectedVideoPhotos.map((file, idx) => {
+      const url = URL.createObjectURL(file);
+      return `
+        <div class="photo-thumb-item" title="${escapeHtml(file.name)}">
+          <img src="${url}" alt="Photo ${idx+1}">
+          <div class="thumb-del" onclick="removeSelectedPhoto(${idx})" title="O'chirish">×</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  window.handleHostVideoSelected = function (e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 100 * 1024 * 1024) {
+      alert("Boshlovchi videosi hajmi 100MB dan oshmasligi kerak!");
+      e.target.value = "";
+      return;
+    }
+
+    hostVideoFile = file;
+    const info = document.getElementById("file-info-host-video");
+    const nameSpan = document.getElementById("filename-host-video");
+    if (info && nameSpan) {
+      nameSpan.textContent = `${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
+      info.classList.remove("hidden");
+    }
+  };
+
   // Confirmation Modal controls
   window.openConfirmModal = function () {
     if (!originalFile) {
@@ -990,6 +1100,17 @@
     if (!specialFile) {
       alert("Iltimos, sevimli musiqa faylini tanlang!");
       return;
+    }
+
+    if (isVideoModeActive) {
+      if (selectedVideoPhotos.length < 10) {
+        alert("Video tabrik yaratish uchun kamida 10 ta rasm yuklashingiz kerak! Hozir: " + selectedVideoPhotos.length + " ta tanlangan.");
+        return;
+      }
+      if (!hostVideoFile) {
+        alert("Iltimos, boshlovchining reklama videosini yuklang!");
+        return;
+      }
     }
 
     const totalAllowed = 3 + (currentUser?.extra_trials || 0);
@@ -1006,10 +1127,11 @@
 
     const modalDesc = document.querySelector("#modal-confirm div[style*='color: var(--text-muted)']");
     if (modalDesc) {
+      const modeText = isVideoModeActive ? "audio va video tabrik montaji (rasmlar va boshlovchi videosi)" : "audio montaj";
       if (hasFreeTrial) {
-        modalDesc.innerHTML = `Tanlangan telefon suhbati va musiqa asosida professional audio montaj boshlansinmi?<br><b style="color:var(--accent-emerald);">Narxi: Bepul (Sinov hisobidan)</b>`;
+        modalDesc.innerHTML = `Tanlangan fayllar asosida professional ${modeText} boshlansinmi?<br><b style="color:var(--accent-emerald);">Narxi: Bepul (Sinov hisobidan)</b>`;
       } else {
-        modalDesc.innerHTML = `Tanlangan telefon suhbati va musiqa asosida professional audio montaj boshlansinmi?<br><b style="color:var(--accent-gold);">Narxi: 10 Tanga (Balansingizdan sarflanadi)</b>`;
+        modalDesc.innerHTML = `Tanlangan fayllar asosida professional ${modeText} boshlansinmi?<br><b style="color:var(--accent-gold);">Narxi: 10 Tanga (Balansingizdan sarflanadi)</b>`;
       }
     }
 
@@ -1050,6 +1172,17 @@
       return;
     }
 
+    if (isVideoModeActive) {
+      if (selectedVideoPhotos.length < 10) {
+        alert("Video tabrik yaratish uchun kamida 10 ta rasm yuklashingiz kerak! Hozir: " + selectedVideoPhotos.length + " ta tanlangan.");
+        return;
+      }
+      if (!hostVideoFile) {
+        alert("Iltimos, boshlovchining reklama videosini yuklang!");
+        return;
+      }
+    }
+
     const btn = document.getElementById("btn-submit-order");
     const progressContainer = document.getElementById("upload-progress-container");
     const progressText = document.getElementById("upload-progress-text");
@@ -1057,11 +1190,25 @@
     btn.disabled = true;
     btn.style.opacity = "0.5";
     progressContainer.classList.remove("hidden");
-    progressText.textContent = "Fayllar yuklanmoqda va tekshirilmoqda...";
+    progressText.textContent = isVideoModeActive 
+      ? "Fayllar (audio, rasmlar, video) yuklanmoqda va tekshirilmoqda..."
+      : "Fayllar yuklanmoqda va tekshirilmoqda...";
 
     const formData = new FormData();
     formData.append("original_recording", originalFile);
     formData.append("special_music", specialFile);
+    formData.append("is_video_mode", isVideoModeActive ? "true" : "false");
+
+    if (isVideoModeActive) {
+      for (const photo of selectedVideoPhotos) {
+        formData.append("video_photos", photo);
+      }
+      if (hostVideoFile) {
+        formData.append("host_video", hostVideoFile);
+      }
+      const hostPos = document.querySelector('input[name="host_video_pos"]:checked')?.value || "intro";
+      formData.append("host_video_position", hostPos);
+    }
 
     // Optional custom timings
     const audioTitleInput = document.getElementById("input-audio-title")?.value?.trim();
@@ -1123,6 +1270,17 @@
       if (document.getElementById("input-audio-title")) document.getElementById("input-audio-title").value = "";
       if (document.getElementById("input-wishes-start")) document.getElementById("input-wishes-start").value = "";
       if (document.getElementById("input-wishes-end")) document.getElementById("input-wishes-end").value = "";
+
+      // Reset Video Mode inputs
+      selectedVideoPhotos = [];
+      hostVideoFile = null;
+      renderVideoPhotosGallery();
+      const hostInfo = document.getElementById("file-info-host-video");
+      if (hostInfo) hostInfo.classList.add("hidden");
+      const hostInput = document.getElementById("input-host-video");
+      if (hostInput) hostInput.value = "";
+      const photosInput = document.getElementById("input-video-photos");
+      if (photosInput) photosInput.value = "";
 
       // If paid order, deduct 10 coins locally and refresh
       const totalAllowed = 3 + (currentUser?.extra_trials || 0);
@@ -1350,7 +1508,12 @@
                     🏷️ ${escapeHtml(o.audio_title)}
                   </div>
                 ` : ''}
-                <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-main);">Buyurtma #${o.id.substring(0, 8)}</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-weight: 600; font-size: 0.88rem; color: var(--text-main);">Buyurtma #${o.id.substring(0, 8)}</span>
+                  ${o.is_video_mode ? `
+                    <span class="badge" style="background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 5px; font-weight: 600;">🎬 Video</span>
+                  ` : ''}
+                </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">${dateStr}</div>
               </div>
               ${o.status === "completed" ? `
@@ -1371,6 +1534,14 @@
             </div>
             ${o.status === "completed" ? `
               <div style="margin-top: 10px;">
+                ${o.is_video_mode ? `
+                  <div style="margin-bottom: 8px;">
+                    <video controls playsinline preload="metadata" style="width: 100%; max-height: 260px; border-radius: 10px; background: #000; display: block;">
+                      <source src="/api/orders/${o.id}/download-video" type="video/mp4">
+                      Brauzeringiz videoni qo'llab-quvvatlamaydi.
+                    </video>
+                  </div>
+                ` : ''}
                 <audio controls src="${dlUrl}" style="width:100%; height:36px;"></audio>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                   <span style="font-size: 0.75rem; color: var(--accent-emerald);">
@@ -1380,11 +1551,16 @@
                     ✓ Tayyor
                   </span>
                 </div>
-                <div id="order-actions-${o.id}" class="order-action-buttons-row" style="display: none; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px;">
-                  <button type="button" onclick="downloadOrderAudio('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn btn-secondary" style="flex: 1; padding: 8px 12px; font-size: 0.82rem; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; text-align: center;">
-                    ⬇️ MP3 Yuklab Olish
+                <div id="order-actions-${o.id}" class="order-action-buttons-row" style="display: none; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; flex-wrap: wrap;">
+                  ${o.is_video_mode ? `
+                    <a href="/api/orders/${o.id}/download-video" download class="btn btn-secondary" style="flex: 1; min-width: 120px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; text-decoration: none; text-align: center; display: inline-block;">
+                      🎬 Video Yuklash
+                    </a>
+                  ` : ''}
+                  <button type="button" onclick="downloadOrderAudio('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn btn-secondary" style="flex: 1; min-width: 110px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; text-align: center;">
+                    ⬇️ MP3 Yuklash
                   </button>
-                  <button type="button" onclick="promptDeleteOrder('${o.id}')" class="btn btn-secondary" style="flex: 1; padding: 8px 12px; font-size: 0.82rem; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; cursor: pointer; text-align: center;">
+                  <button type="button" onclick="promptDeleteOrder('${o.id}')" class="btn btn-secondary" style="flex: 1; min-width: 80px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; cursor: pointer; text-align: center;">
                     🗑️ O'chirish
                   </button>
                 </div>

@@ -760,3 +760,116 @@ body.light-theme .btn-secondary {
 body.light-theme .btn-secondary:hover {
   background: rgba(0, 0, 0, 0.1);
 }
+
+/* ========================================================
+   Header Video Mode Toggle & Video Material Styles
+   ======================================================== */
+.header-video-mode-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.video-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.video-mode-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--text-main);
+}
+
+.video-mode-toggle .vm-camera-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.video-mode-toggle .vm-switch-knob {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  display: inline-block;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.video-mode-toggle.active {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.22), rgba(139, 92, 246, 0.32));
+  border-color: #ec4899;
+  color: #f472b6;
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.35);
+}
+
+.video-mode-toggle.active .vm-switch-knob {
+  background: #ec4899;
+  box-shadow: 0 0 8px #f472b6;
+}
+
+/* Light Theme support for Video Mode Toggle */
+body.light-theme .video-mode-toggle {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #64748b;
+}
+
+body.light-theme .video-mode-toggle.active {
+  background: #fdf2f8;
+  border-color: #db2777;
+  color: #db2777;
+  box-shadow: 0 0 10px rgba(219, 39, 119, 0.25);
+}
+
+body.light-theme .video-mode-toggle.active .vm-switch-knob {
+  background: #db2777;
+  box-shadow: 0 0 6px #db2777;
+}
+
+/* Thumbnail item in video photos grid */
+.photo-thumb-item {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: #111;
+  flex-shrink: 0;
+}
+
+.photo-thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-thumb-item .thumb-del {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.75);
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+}

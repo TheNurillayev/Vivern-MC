@@ -43,6 +43,23 @@ class LocalStorageService:
     def get_output_path(self, order_id: str) -> str:
         return str(self.outputs_dir / f"vivern_order_{order_id}.mp3")
 
+    def get_output_video_path(self, order_id: str) -> str:
+        return str(self.outputs_dir / f"vivern_video_{order_id}.mp4")
+
+    def save_customer_photo(self, source_path: str, order_id: str, index: int, original_filename: str) -> str:
+        ext = os.path.splitext(original_filename)[1].lower() or ".jpg"
+        target_name = f"{order_id}_photo_{index:03d}{ext}"
+        target_path = self.uploads_dir / target_name
+        shutil.copy2(source_path, target_path)
+        return str(target_path)
+
+    def save_host_video(self, source_path: str, order_id: str, original_filename: str) -> str:
+        ext = os.path.splitext(original_filename)[1].lower() or ".mp4"
+        target_name = f"{order_id}_host_video{ext}"
+        target_path = self.uploads_dir / target_name
+        shutil.copy2(source_path, target_path)
+        return str(target_path)
+
     def file_exists(self, path: str) -> bool:
         return os.path.exists(path)
 

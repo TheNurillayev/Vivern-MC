@@ -41,7 +41,13 @@ async def init_db():
             ("custom_call_ending_seconds", "FLOAT"),
             ("custom_starter_track_id", "VARCHAR(36)"),
             ("custom_wishes_track_id", "VARCHAR(36)"),
-            ("custom_ending_track_id", "VARCHAR(36)")
+            ("custom_ending_track_id", "VARCHAR(36)"),
+            ("is_video_mode", "BOOLEAN DEFAULT FALSE"),
+            ("video_photos_json", "TEXT DEFAULT '[]'"),
+            ("host_video_path", "VARCHAR(512) DEFAULT ''"),
+            ("host_video_position", "VARCHAR(32) DEFAULT 'intro'"),
+            ("output_video_path", "VARCHAR(512) DEFAULT ''"),
+            ("output_video_duration", "FLOAT DEFAULT 0.0")
         ]:
             try:
                 await conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {col_type}"))

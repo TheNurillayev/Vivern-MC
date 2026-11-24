@@ -29,6 +29,14 @@ class Order(Base):
     custom_wishes_track_id: Mapped[str] = mapped_column(String(36), nullable=True)
     custom_ending_track_id: Mapped[str] = mapped_column(String(36), nullable=True)
 
+    # Video Mode fields
+    is_video_mode: Mapped[bool] = mapped_column(Boolean, default=False)
+    video_photos_json: Mapped[str] = mapped_column(Text, default="[]")
+    host_video_path: Mapped[str] = mapped_column(String(512), default="")
+    host_video_position: Mapped[str] = mapped_column(String(32), default="intro")
+    output_video_path: Mapped[str] = mapped_column(String(512), default="")
+    output_video_duration: Mapped[float] = mapped_column(Float, default=0.0)
+
     # Output file paths
     output_audio_path: Mapped[str] = mapped_column(String(512), default="")
     output_audio_duration: Mapped[float] = mapped_column(Float, default=0.0)

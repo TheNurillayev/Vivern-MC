@@ -15,7 +15,8 @@ from backend.app.models.edit_decision import EditDecision
 from backend.app.services.speech import get_speech_recognizer
 from backend.app.services.analysis import get_conversation_analyzer
 from backend.app.services.audio.renderer import audio_renderer
-from backend.app.bot.bot import send_delivery_audio
+from backend.app.services.video.renderer import video_renderer
+from backend.app.bot.bot import send_delivery_audio, send_delivery_video
 
 logger = logging.getLogger("vivern-worker")
 
@@ -141,12 +142,33 @@ async def process_single_order(order_id: str):
                 call_ending_path=ending_path,
                 wishes_start_seconds=final_wishes_start,
                 call_ending_start_seconds=final_ending_start,
-                music_volume_db=-18.0
+                music_volume_db=-18.0,
+                is_video_mode=bool(order.is_video_mode)
             )
 
             order.output_audio_path = render_res["output_path"]
             order.output_audio_duration = render_res["duration_seconds"]
             edit_decision.render_params_json = json.dumps(render_res["render_params"], ensure_ascii=False)
+
+            # Stage 4.5: Render Video if in Video Mode
+            if order.is_video_mode:
+                try:
+                    photo_paths = json.loads(order.video_photos_json or "[]")
+                    if photo_paths:
+                        logger.info(f"Rendering Video Tabrik for order {order.id} ({len(photo_paths)} photos)...")
+                        video_res = video_renderer.render_video(
+                            order_id=order.id,
+                            audio_path=order.output_audio_path,
+                            photo_paths=photo_paths,
+                            host_video_path=order.host_video_path if (order.host_video_path and os.path.exists(order.host_video_path)) else None,
+                            host_video_position=order.host_video_position or "intro"
+                        )
+                        order.output_video_path = video_res["output_path"]
+                        order.output_video_duration = video_res["duration_seconds"]
+                        logger.info(f"Video Tabrik successfully rendered: {order.output_video_path} ({order.output_video_duration}s)")
+                except Exception as vid_err:
+                    logger.error(f"Video rendering error for order {order.id}: {vid_err}")
+                    # Do not fail whole order if audio is ready, but record error in logs
 
             # Cost & Resource Metrics Calculation (AT-15)
             trans_mins = round(transcription.duration_seconds / 60.0, 3)
@@ -156,7 +178,21 @@ async def process_single_order(order_id: str):
 
             # Calculate total storage size in MB
             storage_bytes = 0
-            for fpath in [order.original_recording_path, order.special_music_path, order.output_audio_path]:
+            check_files = [
+                order.original_recording_path,
+                order.special_music_path,
+                order.output_audio_path,
+                order.output_video_path,
+                order.host_video_path
+            ]
+            try:
+                p_list = json.loads(order.video_photos_json or "[]")
+                if isinstance(p_list, list):
+                    check_files.extend(p_list)
+            except Exception:
+                pass
+
+            for fpath in check_files:
                 if fpath and os.path.exists(fpath):
                     storage_bytes += os.path.getsize(fpath)
             order.storage_mb = round(storage_bytes / (1024 * 1024), 2)
@@ -185,7 +221,24 @@ async def process_single_order(order_id: str):
                     order.telegram_message_id = msg.message_id
             except Exception as tg_err:
                 logger.error(f"Telegram delivery error for user {order.user_id}: {tg_err}")
-                # We do not fail the order if file is rendered; deliver flag remains False
+
+            # Send video if rendered
+            if order.is_video_mode and order.output_video_path and os.path.exists(order.output_video_path):
+                try:
+                    video_caption = (
+                        f"🎬 *Sizning tabrik video montajingiz tayyor!*\n\n"
+                        f"{title_text}"
+                        f"🆔 Buyurtma: `#{order.id[:8]}`\n"
+                        f"⏱ Video davomiyligi: {round(order.output_video_duration, 1)} soniya\n\n"
+                        f"Yaqinlaringiz uchun esda qolarli bayramona video tuhfa! 🎂🎥"
+                    )
+                    await send_delivery_video(
+                        chat_id=order.user_id,
+                        video_path=order.output_video_path,
+                        caption=video_caption
+                    )
+                except Exception as tg_vid_err:
+                    logger.error(f"Telegram video delivery error for user {order.user_id}: {tg_vid_err}")
 
             # Update User trial count
             if order.is_free_trial:

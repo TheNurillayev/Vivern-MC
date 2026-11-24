@@ -35,7 +35,8 @@ class AudioProductionRenderer:
         call_ending_start_seconds: float,
         outro_max_duration: float = 30.0,
         music_volume_db: float = -18.0,
-        special_music_volume: float = 0.58
+        special_music_volume: float = 0.58,
+        is_video_mode: bool = False
     ) -> Dict[str, Any]:
         ffmpeg_bin = get_ffmpeg_path()
 
@@ -54,8 +55,11 @@ class AudioProductionRenderer:
         wishes_t = min(max(wishes_start_seconds, 1.0), max(1.5, speech_dur - 3.0))
         ending_t = min(max(call_ending_start_seconds, wishes_t + 1.0), max(wishes_t + 1.5, speech_dur - 0.5))
 
-        # Full duration of special music
-        outro_dur = meta_spec["duration_seconds"]
+        # In Video Mode, outro is strictly capped at 1:30 (90 seconds) to prevent excessive video MB size
+        if is_video_mode:
+            outro_dur = min(meta_spec["duration_seconds"], 90.0)
+        else:
+            outro_dur = meta_spec["duration_seconds"]
 
         output_path = storage_service.get_output_path(order_id)
         if os.path.exists(output_path):
