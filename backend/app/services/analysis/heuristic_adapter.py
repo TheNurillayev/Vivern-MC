@@ -7,23 +7,32 @@ logger = logging.getLogger(__name__)
 
 PRIMARY_WISHES_MARKERS = [
     "avvalambor", "avvalam bor", "ruxsatingiz bilan", "dil izhor", 
-    "nomadan yetib", "o'qib eshittir", "oqib eshittir", "tabriknoma"
+    "nomadan yetib", "o'qib eshittir", "oqib eshittir", "tabriknoma",
+    "tinglang", "quloq tuting", "eshiting", "maktub", "yuragimning",
+    "sizga atalgan", "siz uchun maxsus", "dildan chiqqan", "chin dildan",
+    "tilaklarimizni", "tilaklarimni", "sherimiz", "she'rimiz"
 ]
 
 GENERAL_WISHES_KEYWORDS = [
     "tug'ilgan kun", "muborak", "tabriklay", "qutlay", "tilayman", 
-    "tilaymiz", "yosh", "baxt", "omad", "umr", "tavallud"
+    "tilaymiz", "yosh", "baxt", "omad", "umr", "tavallud", "sog'lik",
+    "salomatlik", "cheksiz mehr", "nurli kunlar", "tavallud ayyomingiz"
 ]
 
 ENDING_POEM_MARKERS = [
     "deya", "diye", "deb qolibdilar", "deb qolamiz", "deb niyat", 
     "deb tilab", "nomalarga yakun", "yakun yasay", "yakuniga yet", 
-    "she'rimiz", "aytmoqchi bo'lgan"
+    "she'rimiz", "aytmoqchi bo'lgan", "mana shunday", "mana shunaqa",
+    "ezgu tilak", "chiroyli tilak", "tabrik egasi", "nomidan yo'llad",
+    "nomidan yubor", "tilaklarimiz", "qanday bo'ldi", "yoqdimi",
+    "xursandmisiz", "qo'shiq eshitamiz", "qo'shig'imiz", "sovg'amiz",
+    "akangiz nomidan", "ukangiz nomidan", "onangiz nomidan", "otangiz nomidan",
+    "opangiz nomidan", "singlingiz nomidan", "do'stingiz nomidan", "dugonangiz nomidan"
 ]
 
 ENDING_FAREWELL_KEYWORDS = [
     "salomat bo'ling", "sog' bo'ling", "xayr", "mayli", "ko'rishguncha", 
-    "yaxshi qoling", "omon bo'ling", "minnatdormiz"
+    "yaxshi qoling", "omon bo'ling", "minnatdormiz", "rahmat", "joningiz omon"
 ]
 
 class HeuristicConversationAnalyzer(BaseConversationAnalyzer):
@@ -57,8 +66,8 @@ class HeuristicConversationAnalyzer(BaseConversationAnalyzer):
         wishes_idx = None
         ending_idx = None
 
-        # Introductory banter in birthday radio calls usually lasts at least 30-45s
-        min_wishes_time = 35.0 if total_duration > 90.0 else 5.0
+        # Introductory banter in birthday calls usually lasts at least 15-30s
+        min_wishes_time = 18.0 if total_duration > 60.0 else 4.0
 
         # Phase 1: Search for primary wish markers after introductory banter
         for i, seg in enumerate(segments):
@@ -94,8 +103,8 @@ class HeuristicConversationAnalyzer(BaseConversationAnalyzer):
             wishes_start = round(total_duration * 0.30, 1)
             warnings.append("Tug'ilgan kun tilaklari qismi aniq topilmadi, standart oraliq tavsiya etildi.")
 
-        # Phase 4: Search forward for wish conclusion / poem end (at least 25s after wishes_start)
-        min_ending_time = wishes_start + 25.0
+        # Phase 4: Search forward for wish conclusion / poem end (at least 12s after wishes_start)
+        min_ending_time = wishes_start + 12.0
         if wishes_idx is not None:
             for i in range(wishes_idx + 1, len(segments)):
                 if segments[i].start_seconds < min_ending_time:
@@ -105,12 +114,22 @@ class HeuristicConversationAnalyzer(BaseConversationAnalyzer):
                     ending_idx = i
                     break
 
+        # Phase 4b: If explicit poem marker not found, check farewell / closing keywords
+        if ending_idx is None and wishes_idx is not None:
+            for i in range(wishes_idx + 1, len(segments)):
+                if segments[i].start_seconds < min_ending_time:
+                    continue
+                text_lower = segments[i].text.lower()
+                if any(k in text_lower for k in ENDING_FAREWELL_KEYWORDS):
+                    ending_idx = i
+                    break
+
         ending_confidence = 0.90 if ending_idx is not None else 0.45
         if ending_idx is not None:
             ending_start = segments[ending_idx].start_seconds
         else:
-            # If explicit poem end marker not found, check for wrap-up discussion transition
-            ending_start = round(min(total_duration - 10.0, max(wishes_start + 45.0, total_duration * 0.70)), 1)
+            # If explicit marker not found, place ending transition at 70% or +35s
+            ending_start = round(min(total_duration - 8.0, max(wishes_start + 35.0, total_duration * 0.70)), 1)
             warnings.append("Tilak yakuni belgisi topilmadi, umumiy oraliq tavsiya etildi.")
 
         # Sanity checks

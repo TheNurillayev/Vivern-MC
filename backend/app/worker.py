@@ -140,7 +140,8 @@ async def process_single_order(order_id: str):
                 wishes_music_path=wishes_path,
                 call_ending_path=ending_path,
                 wishes_start_seconds=final_wishes_start,
-                call_ending_start_seconds=final_ending_start
+                call_ending_start_seconds=final_ending_start,
+                music_volume_db=-18.0
             )
 
             order.output_audio_path = render_res["output_path"]

@@ -34,7 +34,7 @@ class AudioProductionRenderer:
         wishes_start_seconds: float,
         call_ending_start_seconds: float,
         outro_max_duration: float = 30.0,
-        music_volume_db: float = -19.0,
+        music_volume_db: float = -18.0,
         special_music_volume: float = 0.58
     ) -> Dict[str, Any]:
         ffmpeg_bin = get_ffmpeg_path()
@@ -61,7 +61,7 @@ class AudioProductionRenderer:
         if os.path.exists(output_path):
             os.remove(output_path)
 
-        # Convert music volume db to linear gain (-19 dB is approx 0.1122 for audible background)
+        # Convert music volume db to linear gain (-18 dB is approx 0.1259 for audible studio background)
         linear_gain = round(10 ** (music_volume_db / 20.0), 4)
 
         # 2-second seamless crossfade between background music sections

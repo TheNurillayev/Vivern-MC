@@ -41,21 +41,28 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
 
             system_prompt = (
                 "You are an expert audio mastering director analyzing the semantic meaning, speech acts, and conversational tone of Uzbek birthday phone calls.\n\n"
-                "Calls have 3 phases with completely different communicative intents and discourse registers:\n"
+                "Calls have 3 distinct musical phases:\n"
                 "1. INTERACTIVE CHIT-CHAT (Starter BG): Host and recipient chatting back-and-forth, teasing, asking who called, getting ready.\n"
-                "   Note: Casual polite pleasantries like 'tabriklaymiz', 'sog'lik tilayman', or 'omon bo'ling' at the start are just conversational lubrication, NOT the dedicated wish monologue!\n"
-                "2. DEDICATION MONOLOGUE (Wishes BG): The speech act shifts from 2-way dialogue to a 1-way literary/emotional reading of a letter, poem, or heartfelt message dedicated to the recipient.\n"
-                "   Note: It does NOT require formulaic greetings like 'avvalambor' — detect it by the register shift into poetic, personal, emotionally intense dedication addressed to or honoring the recipient.\n"
-                "3. CALL ENDING BG (call_ending_start_seconds): The Wishes BG concludes and Call Ending BG starts at the EXACT MOMENT the final line/rhyme of the poem or personal letter concludes!\n"
-                "   CRITICAL TIMING RULE FOR call_ending_start_seconds:\n"
-                "   - Identify the exact segment where the poem or letter's last line ends (e.g. 'Baxtim uchun har nega tayyordir akam').\n"
-                "   - Set 'call_ending_start_seconds' to the exact end of that final poem/wish line (or start of 'Deya...').\n"
-                "   - DO NOT wait for the host to deliver their follow-up commentary, closing announcements, or ask questions like 'Qanday his qildingiz?' / 'Yoqdimi?'. Waiting for the host's reaction question causes the transition to be 9-10 seconds TOO LATE!\n\n"
-                "Identify:\n"
-                "- wishes_start_seconds: Exact timestamp where the reading/dedication monologue begins.\n"
-                "- call_ending_start_seconds: Exact timestamp at the final line of the poem/letter where Wishes ends and Call Ending begins.\n\n"
-                "Return ONLY valid JSON with keys: wishes_start_seconds (float), call_ending_start_seconds (float), "
-                "wishes_confidence (0.0-1.0), call_ending_confidence (0.0-1.0), reasoning (string), warnings (list of strings)."
+                "   CRITICAL: Casual polite pleasantries like 'tabriklaymiz', 'sog'lik tilayman', or 'omon bo'ling' during early banter are NOT the dedicated wish monologue!\n"
+                "2. DEDICATION MONOLOGUE (Wishes BG - wishes_start_seconds):\n"
+                "   The speech act shifts from 2-way dialogue to a 1-way literary/emotional reading of a letter, poem, or heartfelt message dedicated to the recipient.\n"
+                "   TIMING RULES FOR wishes_start_seconds:\n"
+                "   - If the host says a transitional cue (e.g. 'Unday bo'lsa quloq tuting', 'Sizga atalgan maxsus tabrikni o'qib beramiz', 'Hozir sizga xatni o'qiyman'), 'wishes_start_seconds' MUST be set to the EXACT timestamp where the actual poetic reading or formal dedication begins (e.g., 'Avvalambor...', or the first line of the poem/letter), NOT during the transitional chatter.\n"
+                "   - It does NOT require formulaic greetings like 'avvalambor' — detect it by the register shift into poetic, personal, emotionally intense dedication addressed to or honoring the recipient.\n"
+                "3. CALL ENDING BG (call_ending_start_seconds):\n"
+                "   The Wishes BG concludes and Call Ending BG starts at the EXACT MOMENT the final line/rhyme of the poem or personal letter concludes!\n"
+                "   CRITICAL TIMING RULES FOR call_ending_start_seconds:\n"
+                "   - Identify the exact segment where the poem or letter's last line ends (e.g. 'Baxtim uchun har nega tayyordir akam', 'Umringiz ziyoda bo'lsin').\n"
+                "   - If followed by an attribution tag (e.g. 'Deya...', 'Deb tilab qoladilar...', 'Mana shunday ezgu tilaklarni akangiz yubordilar'), set 'call_ending_start_seconds' to the end of the poem line or the start of 'Deya/Deb/Mana shunday'.\n"
+                "   - If the host immediately asks a reaction question (e.g. 'Qanday bo'ldi?', 'Yoqdimi?', 'Kim deb o'ylaysiz?'), set 'call_ending_start_seconds' to the exact end of the poem before the question.\n"
+                "   - NEVER extend Wishes BG into the post-poem reaction discussion or farewell.\n\n"
+                "Return ONLY valid JSON with keys:\n"
+                "- wishes_start_seconds: (float) exact timestamp where the dedication reading begins\n"
+                "- call_ending_start_seconds: (float) exact timestamp where the dedication reading finishes and wrap-up begins\n"
+                "- wishes_confidence: (float 0.0-1.0)\n"
+                "- call_ending_confidence: (float 0.0-1.0)\n"
+                "- reasoning: (string) brief explanation of the chosen boundaries\n"
+                "- warnings: (list of strings)"
             )
 
             user_prompt = (
@@ -86,6 +93,28 @@ class OpenAIConversationAnalyzer(BaseConversationAnalyzer):
                     e_start = float(content.get("call_ending_start_seconds", total_duration * 0.75))
                     w_conf = float(content.get("wishes_confidence", 0.95))
                     e_conf = float(content.get("call_ending_confidence", 0.90))
+
+                    # Snap to nearest speech segment boundary for sample-accurate crossfade
+                    if segments:
+                        best_w = w_start
+                        min_diff_w = 999.0
+                        for s in segments:
+                            diff = abs(s.start_seconds - w_start)
+                            if diff < min_diff_w and diff <= 1.8:
+                                min_diff_w = diff
+                                best_w = s.start_seconds
+
+                        best_e = e_start
+                        min_diff_e = 999.0
+                        for s in segments:
+                            diff = abs(s.end_seconds - e_start)
+                            if diff < min_diff_e and diff <= 1.8:
+                                min_diff_e = diff
+                                best_e = s.end_seconds
+
+                        w_start = best_w
+                        e_start = max(w_start + 10.0, best_e)
+
                     reasoning = content.get("reasoning", "")
                     if reasoning:
                         logger.info(f"AI Stage Analysis Reasoning: {reasoning}")
