@@ -48,11 +48,11 @@ class AudioProductionRenderer:
         meta_wishes = validate_audio_file(wishes_music_path)
         meta_ending = validate_audio_file(call_ending_path)
 
-        speech_dur = meta_orig["duration_seconds"]
-        intro_dur = meta_intro["duration_seconds"]
+        speech_dur = max(2.0, meta_orig["duration_seconds"])
+        intro_dur = max(1.0, meta_intro["duration_seconds"])
 
         # Bound transition points cleanly to speech duration
-        wishes_t = min(max(wishes_start_seconds, 1.0), max(1.5, speech_dur - 3.0))
+        wishes_t = min(max(wishes_start_seconds, 1.0), max(1.5, speech_dur - 2.0))
         ending_t = min(max(call_ending_start_seconds, wishes_t + 1.0), max(wishes_t + 1.5, speech_dur - 0.5))
 
         # In Video Mode, outro is strictly capped at 1:30 (90 seconds) to prevent excessive video MB size
@@ -65,47 +65,45 @@ class AudioProductionRenderer:
         if os.path.exists(output_path):
             os.remove(output_path)
 
-        # Convert music volume db to linear gain (-18 dB is approx 0.1259 for audible studio background)
+        # Convert music volume db to linear gain (-17 dB is approx 0.1413 for audible studio background)
         linear_gain = round(10 ** (music_volume_db / 20.0), 4)
 
         # 2-second seamless crossfade between background music sections
         cf_dur = 2.0
         cf_half = cf_dur / 2.0
 
-        dur1 = wishes_t + cf_half
-        dur2 = (ending_t - wishes_t) + cf_dur
-        dur3 = (speech_dur - ending_t) + cf_half
+        dur1 = round(max(2.0, wishes_t + cf_half), 3)
+        dur2 = round(max(2.0, (ending_t - wishes_t) + cf_dur), 3)
+        dur3 = round(max(2.0, (speech_dur - ending_t) + cf_half), 3)
 
-        delay2_ms = int(max(0, wishes_t - cf_half) * 1000)
-        delay3_ms = int(max(0, ending_t - cf_half) * 1000)
+        delay2_ms = int(max(0.0, wishes_t - cf_half) * 1000)
+        delay3_ms = int(max(0.0, ending_t - cf_half) * 1000)
 
-        # Filtergraph explanation:
-        # [0:a] Number & Call FX: full length, formatted to 44.1k stereo [a_intro]
-        # [1:a] Speech: Studio gentle denoise + vocal clarity EQ + dynaudnorm loudness leveler [a_speech]
-        # [2:a] Starter BG: plays until wishes_t with 2s crossfade out [bg1]
-        # [3:a] Wishes BG: delayed to wishes_t - 1s, fades in 2s, plays until ending_t, fades out 2s [bg2]
-        # [4:a] Ending BG: delayed to ending_t - 1s, fades in 2s, plays until speech ends [bg3]
-        # Mix bg1 + bg2 + bg3 with normalize=0 -> [a_bg_music]
-        # Mix speech + bg_music with normalize=0 -> [a_call_mixed]
-        # Concat intro + call_mixed -> [a_full_call]
-        # [5:a] Special Music: 100% full duration, 1s fade-in, smooth 1.5s natural decay [a_outro]
-        # Concat full_call + outro -> [out_a]
+        # Ensure afade start times are strictly non-negative and durations fit within clip
+        st1 = round(max(0.0, wishes_t - cf_half), 3)
+        d1 = round(min(cf_dur, max(0.2, dur1 - st1)), 3)
+
+        d2_in = round(min(cf_dur, max(0.2, dur2 * 0.4)), 3)
+        st2_out = round(max(0.0, dur2 - cf_dur), 3)
+        d2_out = round(min(cf_dur, max(0.2, dur2 - st2_out)), 3)
+
+        d3_in = round(min(cf_dur, max(0.2, dur3 * 0.4)), 3)
 
         filter_complex = (
             f"[0:a]atrim=0:{intro_dur},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo[a_intro];"
             f"[1:a]atrim=0:{speech_dur},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,"
             f"highpass=f=80,lowpass=f=8500,afftdn=nf=-20,equalizer=f=2800:t=q:w=1.2:g=1.5,dynaudnorm=f=200:m=6:p=0.85[a_speech];"
             f"[2:a]atrim=0:{dur1},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume={linear_gain},"
-            f"afade=t=out:st={wishes_t - cf_half}:d={cf_dur}[bg1];"
+            f"afade=t=out:st={st1}:d={d1}[bg1];"
             f"[3:a]atrim=0:{dur2},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume={linear_gain},"
-            f"afade=t=in:st=0:d={cf_dur},afade=t=out:st={dur2 - cf_dur}:d={cf_dur},adelay={delay2_ms}|{delay2_ms}[bg2];"
+            f"afade=t=in:st=0:d={d2_in},afade=t=out:st={st2_out}:d={d2_out},adelay={delay2_ms}|{delay2_ms}[bg2];"
             f"[4:a]atrim=0:{dur3},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume={linear_gain},"
-            f"afade=t=in:st=0:d={cf_dur},adelay={delay3_ms}|{delay3_ms}[bg3];"
+            f"afade=t=in:st=0:d={d3_in},adelay={delay3_ms}|{delay3_ms}[bg3];"
             f"[bg1][bg2][bg3]amix=inputs=3:normalize=0:duration=longest[a_bg_music];"
             f"[a_speech][a_bg_music]amix=inputs=2:normalize=0:duration=first[a_call_mixed];"
             f"[a_intro][a_call_mixed]concat=n=2:v=0:a=1[a_full_call];"
             f"[5:a]atrim=0:{outro_dur},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume={special_music_volume},"
-            f"afade=t=in:st=0:d=1.0,afade=t=out:st={max(0, outro_dur - 1.5)}:d=1.5[a_outro];"
+            f"afade=t=in:st=0:d=1.0,afade=t=out:st={max(0.0, round(outro_dur - 1.5, 3))}:d=1.5[a_outro];"
             f"[a_full_call][a_outro]concat=n=2:v=0:a=1[out_a]"
         )
 
@@ -115,9 +113,9 @@ class AudioProductionRenderer:
             "-threads", "0",
             "-t", str(intro_dur + 1.0), "-i", number_call_path,
             "-t", str(speech_dur + 1.0), "-i", original_recording_path,
-            "-t", str(dur1 + 2.0), "-i", starter_music_path,
-            "-t", str(dur2 + 2.0), "-i", wishes_music_path,
-            "-t", str(dur3 + 2.0), "-i", call_ending_path,
+            "-stream_loop", "-1", "-t", str(dur1 + 2.0), "-i", starter_music_path,
+            "-stream_loop", "-1", "-t", str(dur2 + 2.0), "-i", wishes_music_path,
+            "-stream_loop", "-1", "-t", str(dur3 + 2.0), "-i", call_ending_path,
             "-t", str(outro_dur + 1.0), "-i", special_music_path,
             "-filter_complex", filter_complex,
             "-map", "[out_a]",
@@ -131,13 +129,15 @@ class AudioProductionRenderer:
         try:
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
             if proc.returncode != 0:
-                raise AudioRenderError(f"FFmpeg render failed (code {proc.returncode}): {proc.stderr[:1000]}")
+                err_lines = [l.strip() for l in proc.stderr.splitlines() if l.strip() and not l.startswith("configuration:") and not l.startswith("built with") and not l.startswith("lib")]
+                err_summary = "\n".join(err_lines[-6:]) if err_lines else proc.stderr[-400:]
+                raise AudioRenderError(f"FFmpeg render xatosi (code {proc.returncode}): {err_summary}")
         except subprocess.TimeoutExpired:
-            raise AudioRenderError("FFmpeg audio rendering process timed out.")
+            raise AudioRenderError("FFmpeg audio rendering jarayoni vaqt chegarasidan oshib ketdi.")
         except Exception as e:
             if isinstance(e, AudioRenderError):
                 raise
-            raise AudioRenderError(f"Audio rendering error: {str(e)}")
+            raise AudioRenderError(f"Audio montaj xatosi: {str(e)}")
 
         out_meta = validate_audio_file(output_path)
         logger.info(f"Audio production rendered successfully: {output_path} ({out_meta['duration_seconds']}s)")

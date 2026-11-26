@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.database import init_db
@@ -39,6 +40,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled server error on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Server xatoligi: {str(exc)}"}
+    )
 
 @app.middleware("http")
 async def disable_cache_for_static(request: Request, call_next):

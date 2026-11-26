@@ -10,10 +10,12 @@ storage/*.db
 storage/uploads/*
 storage/outputs/*
 storage/avatars/*
+storage/receipts/*
 !storage/library/.gitkeep
 !storage/uploads/.gitkeep
 !storage/outputs/.gitkeep
 !storage/avatars/.gitkeep
+!storage/receipts/.gitkeep
 
 # Python cache and venv
 __pycache__/

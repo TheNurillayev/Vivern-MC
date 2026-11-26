@@ -163,7 +163,11 @@ async def process_single_order(order_id: str):
             # Stage 4.5: Render Video if in Video Mode
             if order.is_video_mode:
                 try:
-                    photo_paths = json.loads(order.video_photos_json or "[]")
+                    raw_photos = json.loads(order.video_photos_json or "[]")
+                    photo_paths = [storage_service.resolve_asset_path(p) or p for p in raw_photos]
+                    photo_paths = [p for p in photo_paths if p and os.path.exists(p)]
+                    host_vid = storage_service.resolve_asset_path(order.host_video_path) if order.host_video_path else None
+
                     if photo_paths:
                         logger.info(f"Rendering Video Tabrik for order {order.id} ({len(photo_paths)} photos)...")
                         async with RENDER_SEMAPHORE:
@@ -172,7 +176,7 @@ async def process_single_order(order_id: str):
                                 order_id=order.id,
                                 audio_path=order.output_audio_path,
                                 photo_paths=photo_paths,
-                                host_video_path=order.host_video_path if (order.host_video_path and os.path.exists(order.host_video_path)) else None,
+                                host_video_path=host_vid,
                                 host_video_position=order.host_video_position or "intro"
                             )
                         order.output_video_path = video_res["output_path"]
@@ -212,7 +216,9 @@ async def process_single_order(order_id: str):
             await session.commit()
 
             # Stage 5: Delivery
-            title_text = f"🏷️ *Nomi:* {order.audio_title}\n" if (order.audio_title and order.audio_title.strip()) else ""
+            import html
+            safe_title = html.escape(order.audio_title) if (order.audio_title and order.audio_title.strip()) else ""
+            title_text = f"🏷️ <b>Nomi:</b> {safe_title}\n" if safe_title else ""
 
             if order.is_video_mode:
                 # Video mode delivery
@@ -220,9 +226,9 @@ async def process_single_order(order_id: str):
                 if order.output_video_path and os.path.exists(order.output_video_path):
                     try:
                         video_caption = (
-                            f"🎬 *Sizning tabrik video montajingiz tayyor!*\n\n"
+                            f"🎬 <b>Sizning tabrik video montajingiz tayyor!</b>\n\n"
                             f"{title_text}"
-                            f"🆔 Buyurtma: `#{order.id[:8]}`\n"
+                            f"🆔 Buyurtma: <code>#{order.id[:8]}</code>\n"
                             f"⏱ Video davomiyligi: {round(order.output_video_duration, 1)} soniya\n\n"
                             f"Yaqinlaringiz uchun esda qolarli bayramona video tuhfa! 🎂🎥"
                         )
@@ -246,21 +252,21 @@ async def process_single_order(order_id: str):
                         await bot.send_message(
                             chat_id=order.user_id,
                             text=(
-                                f"🎬 *Buyurtmangiz muvaffaqiyatli tayyor bo'ldi!* `#{order.id[:8]}`\n\n"
+                                f"🎬 <b>Buyurtmangiz muvaffaqiyatli tayyor bo'ldi!</b> <code>#{order.id[:8]}</code>\n\n"
                                 f"{title_text}"
                                 f"⚠️ Video fayl hajmi yuqori sifatda bo'lganligi sababli to'g'ridan-to'g'ri Telegram orqali yuborilmadi.\n\n"
-                                f"Iltimos, **Vivern MC Mini App** ilovasiga kiring va **Tarix** bo'limidagi **'🎬 Video Yuklash'** tugmasi orqali videoni yuqori sifatda yuklab oling! 📲📥"
+                                f"Iltimos, <b>Vivern MC Mini App</b> ilovasiga kiring va <b>Tarix</b> bo'limidagi <b>'🎬 Video Yuklash'</b> tugmasi orqali videoni yuqori sifatda yuklab oling! 📲📥"
                             ),
-                            parse_mode="Markdown"
+                            parse_mode="HTML"
                         )
                     except Exception as notify_err:
                         logger.error(f"Failed to send fallback notice to user {order.user_id}: {notify_err}")
             else:
                 # Audio mode delivery
                 caption = (
-                    f"🎉 *Sizning tabrik audio montajingiz tayyor!*\n\n"
+                    f"🎉 <b>Sizning tabrik audio montajingiz tayyor!</b>\n\n"
                     f"{title_text}"
-                    f"🆔 Buyurtma: `#{order.id[:8]}`\n"
+                    f"🆔 Buyurtma: <code>#{order.id[:8]}</code>\n"
                     f"⏱ Davomiyligi: {round(order.output_audio_duration, 1)} soniya\n\n"
                     f"Tug'ilgan kun egasini chiroyli tabriklashingizda omad tilaymiz! 🎂🎶"
                 )

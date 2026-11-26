@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Vivern MC - Admin Panel</title>
-  <link rel="stylesheet" href="/static/css/app.css?v=20261124_v5">
+  <link rel="stylesheet" href="/static/css/app.css?v=20261126_v9">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     /* Two Primary Horizontal Admin Navigation Buttons */
@@ -803,6 +803,31 @@
   <input type="file" id="admin-file-input" accept="audio/*,.mp3,.wav,.m4a,.ogg" style="display: none;" onchange="handleFileSelected(event)">
 
   <script>
+    function escapeHtml(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function fetchSafeJson(url, options = {}) {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { detail: text || res.statusText || "Server xatosi" };
+      }
+      if (!res.ok) {
+        throw new Error(data?.detail || res.statusText || "Xatolik yuz berdi");
+      }
+      return data;
+    }
+
     const tg = window.Telegram?.WebApp;
     let selectedCategoryId = null;
     let token = sessionStorage.getItem("vivern_token");
@@ -819,13 +844,11 @@
       // Check authorization with backend
       const rawInitData = tg?.initData || "test_user_8449563084";
       try {
-        const authRes = await fetch("/api/auth/telegram", {
+        const authData = await fetchSafeJson("/api/auth/telegram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ init_data: rawInitData })
         });
-        if (!authRes.ok) throw new Error("Auth failed");
-        const authData = await authRes.json();
         token = authData.token;
         sessionStorage.setItem("vivern_token", token);
 
@@ -1477,7 +1500,7 @@
       submitBtn.textContent = "Qo'shilmoqda...";
 
       try {
-        const res = await fetch(`/api/admin/users/${currentModalUser.id}/coins`, {
+        const data = await fetchSafeJson(`/api/admin/users/${currentModalUser.id}/coins`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -1485,8 +1508,6 @@
           },
           body: JSON.stringify({ coins, message })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Tangalar qo'shishda xatolik");
 
         closeAdminAddCoinsModal();
         showAdminNotification(`✅ ${currentModalUser.first_name || 'Foydalanuvchi'}ga +${coins} ta tanga qo'shildi!`, "success");
@@ -1529,7 +1550,7 @@
       submitBtn.textContent = "Yuborilmoqda...";
 
       try {
-        const res = await fetch(`/api/admin/users/${currentModalUser.id}/gift`, {
+        const data = await fetchSafeJson(`/api/admin/users/${currentModalUser.id}/gift`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -1537,8 +1558,6 @@
           },
           body: JSON.stringify({ trials, title, message })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Sovg'a yuborishda xatolik");
 
         closeAdminSendGiftModal();
         showAdminNotification(`✅ ${currentModalUser.first_name || 'Foydalanuvchi'}ga ${trials} ta bepul urinish sovg'a qilindi!`, "success");
@@ -1553,16 +1572,6 @@
       }
     }
 
-    function escapeHtml(text) {
-      if (!text) return "";
-      return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
     // 3. To'lovlar tarixi
     async function adminOpenPaymentHistoryModal() {
       document.getElementById("admin-user-menu")?.classList.add("hidden");
@@ -1573,11 +1582,9 @@
       content.innerHTML = '<div style="text-align:center; padding:15px; color:var(--text-muted);"><div class="spinner"></div><div style="margin-top:6px; font-size:0.8rem;">To\'lovlar hisoblanmoqda...</div></div>';
 
       try {
-        const res = await fetch(`/api/admin/users/${currentModalUser.id}/payments`, {
+        const data = await fetchSafeJson(`/api/admin/users/${currentModalUser.id}/payments`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Yuklab bo'lmadi");
 
         const totalPaidSom = data.total_paid_som || 0;
         const totalCoins = data.total_coins || 0;

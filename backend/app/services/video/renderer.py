@@ -33,19 +33,19 @@ class VideoRenderer:
 
     EFFECTS = [
         # 0: Vertical Pan Up Drift
-        "crop=w=iw:h=ih-120:x=0:y='(t/4)*120',scale=720:1280",
+        "crop=w=iw:h=ih-120:x=0:y='(t/4)*120',scale=720:1280,format=yuv420p",
         # 1: Camera Flash & Soft Dissolve
-        "fade=t=in:st=0:d=0.7,eq=brightness='0.22*max(0,1-t*2)':contrast=1.12",
+        "fade=t=in:st=0:d=0.7,eq=brightness='0.22*max(0,1-t*2)':contrast=1.12,scale=720:1280,format=yuv420p",
         # 2: Horizontal Pan Left Drift
-        "crop=w=iw-90:h=ih:x='(t/4)*90':y=0,scale=720:1280",
+        "crop=w=iw-90:h=ih:x='(t/4)*90':y=0,scale=720:1280,format=yuv420p",
         # 3: Warm Golden Glow & Contrast Pulse
-        "eq=saturation='1.15+0.35*sin(t*2)':contrast=1.1:gamma=1.05,fade=t=in:st=0:d=0.5",
+        "eq=saturation='1.15+0.35*sin(t*2)':contrast=1.1:gamma=1.05,fade=t=in:st=0:d=0.5,scale=720:1280,format=yuv420p",
         # 4: Vertical Pan Down Drift
-        "crop=w=iw:h=ih-120:x=0:y='(1-t/4)*120',scale=720:1280",
+        "crop=w=iw:h=ih-120:x=0:y='(1-t/4)*120',scale=720:1280,format=yuv420p",
         # 5: Horizontal Pan Right Drift
-        "crop=w=iw-90:h=ih:x='(1-t/4)*90':y=0,scale=720:1280",
+        "crop=w=iw-90:h=ih:x='(1-t/4)*90':y=0,scale=720:1280,format=yuv420p",
         # 6: Diagonal Smooth Drift
-        "crop=w=iw-70:h=ih-90:x='(t/4)*70':y='(t/4)*90',scale=720:1280"
+        "crop=w=iw-70:h=ih-90:x='(t/4)*70':y='(t/4)*90',scale=720:1280,format=yuv420p"
     ]
 
     def create_photo_composite(
@@ -198,7 +198,7 @@ class VideoRenderer:
                     vf = self.EFFECTS[effect_counter % len(self.EFFECTS)]
                     effect_counter += 1
                 else:
-                    vf = "scale=720:1280"
+                    vf = "scale=720:1280,format=yuv420p"
 
                 cmd = [
                     ffmpeg_bin, "-y",
@@ -236,7 +236,21 @@ class VideoRenderer:
                 "-c", "copy",
                 full_video_track
             ]
-            subprocess.run(cmd_concat, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            proc_concat = subprocess.run(cmd_concat, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if proc_concat.returncode != 0 or not os.path.exists(full_video_track) or os.path.getsize(full_video_track) == 0:
+                logger.warning(f"Fast concat copy fallback to re-encoding: {proc_concat.stderr.decode('utf-8', errors='ignore')[-300:]}")
+                cmd_concat_fallback = [
+                    ffmpeg_bin, "-y",
+                    "-f", "concat",
+                    "-safe", "0",
+                    "-i", full_video_list,
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-pix_fmt", "yuv420p",
+                    "-r", str(fps),
+                    full_video_track
+                ]
+                subprocess.run(cmd_concat_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
             # Step 6: Mux full video track with complete birthday audio
             cmd_mux = [
@@ -253,16 +267,6 @@ class VideoRenderer:
                 final_video_output
             ]
             subprocess.run(cmd_mux, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-
-        final_dur = get_media_duration(final_video_output)
-        final_size = os.path.getsize(final_video_output) if os.path.exists(final_video_output) else 0
-
-        logger.info(f"Video render completed for order {order_id}: duration={final_dur:.1f}s, size={final_size} bytes")
-        return {
-            "output_path": final_video_output,
-            "duration_seconds": final_dur,
-            "file_size_bytes": final_size
-        }
 
         final_dur = get_media_duration(final_video_output)
         final_size = os.path.getsize(final_video_output) if os.path.exists(final_video_output) else 0

@@ -377,22 +377,25 @@ async def submit_coin_receipt(
         while chunk := await file.read(1024 * 64):
             buffer.write(chunk)
 
+    import html
     is_image = ext in [".jpg", ".jpeg", ".png", ".webp"]
-    user_name = f"{current_user.first_name} {current_user.last_name or ''}".strip()
-    tg_handle = f"@{current_user.username}" if current_user.username else f"ID: {current_user.id}"
+    raw_name = f"{current_user.first_name} {current_user.last_name or ''}".strip() or "Foydalanuvchi"
+    user_name = html.escape(raw_name)
+    tg_handle = html.escape(f"@{current_user.username}" if current_user.username else f"ID: {current_user.id}")
 
     # Clean tariff name (e.g. "10 Tanga" without "(1 ta buyurtma)")
-    clean_package_name = package_name.split("(")[0].strip() if "(" in package_name else package_name.strip()
+    raw_pkg = package_name.split("(")[0].strip() if "(" in package_name else package_name.strip()
+    clean_package_name = html.escape(raw_pkg)
 
     import datetime
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     caption = (
-        f"🧾 *YANGI TO'LOV CHEKI KELDI!*\n\n"
-        f"👤 *Foydalanuvchi:* {user_name} ({tg_handle})\n"
-        f"🆔 *Telegram ID:* `{current_user.id}`\n"
-        f"📦 *Tanlangan tarif:* {clean_package_name}\n"
-        f"💵 *To'lov summasi:* {amount_som:,} so'm\n"
-        f"📅 *Sana:* {now_str}"
+        f"🧾 <b>YANGI TO'LOV CHEKI KELDI!</b>\n\n"
+        f"👤 <b>Foydalanuvchi:</b> {user_name} ({tg_handle})\n"
+        f"🆔 <b>Telegram ID:</b> <code>{current_user.id}</code>\n"
+        f"📦 <b>Tanlangan tarif:</b> {clean_package_name}\n"
+        f"💵 <b>To'lov summasi:</b> {amount_som:,} so'm\n"
+        f"📅 <b>Sana:</b> {now_str}"
     )
 
     try:

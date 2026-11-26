@@ -16,20 +16,40 @@
     if (tg.setBackgroundColor) tg.setBackgroundColor("#0f111a");
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  async function fetchSafeJson(url, options = {}) {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      data = { detail: text || res.statusText || "Server xatosi" };
+    }
+    if (!res.ok) {
+      throw new Error(data?.detail || res.statusText || "Xatolik yuz berdi");
+    }
+    return data;
+  }
+
   async function initAuth() {
     const rawInitData = tg?.initData || "test_user_8449563084";
     try {
-      const response = await fetch("/api/auth/telegram", {
+      const data = await fetchSafeJson("/api/auth/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ init_data: rawInitData }),
       });
 
-      if (!response.ok) {
-        throw new Error("Autentifikatsiya xatosi: " + response.statusText);
-      }
-
-      const data = await response.json();
       currentUser = data.user;
       authToken = data.token;
       sessionStorage.setItem("vivern_token", authToken);
@@ -644,15 +664,13 @@
       formData.append("coins", selectedCoinPackage.coins);
       formData.append("amount_som", selectedCoinPackage.price);
 
-      const res = await fetch("/api/auth/coins/submit-receipt", {
+      const data = await fetchSafeJson("/api/auth/coins/submit-receipt", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${activeToken}`
         },
         body: formData
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Chekni yuborib bo'lmadi");
 
       alert("✅ To'lov chekingiz muvaffaqiyatli adminga yetkazildi!\n\nAdministrator tekshirib, hisobingizga " + selectedCoinPackage.coins + " ta tangani tez orada qo'shib beradi.");
       removeReceiptFile();
@@ -678,10 +696,9 @@
 
     try {
       const activeToken = authToken || sessionStorage.getItem("vivern_token");
-      const res = await fetch("/api/orders/my", {
+      const orders = await fetchSafeJson("/api/orders/my", {
         headers: { "Authorization": `Bearer ${activeToken}` }
       });
-      const orders = await res.json();
 
       const completed = orders.filter(o => o.status === "completed");
 
@@ -1022,14 +1039,64 @@
     }
   };
 
-  window.handleVideoPhotosSelected = function (e) {
+  function optimizePhotoFile(file) {
+    return new Promise((resolve) => {
+      if (!file.type || !file.type.startsWith("image/") || file.size <= 500 * 1024) {
+        resolve(file);
+        return;
+      }
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.width;
+        let h = img.height;
+        const maxDim = 1280;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => {
+          if (blob && blob.size < file.size) {
+            const cleanName = (file.name || "photo.jpg").replace(/\.[^.]+$/, ".jpg");
+            const optimized = new File([blob], cleanName, { type: "image/jpeg" });
+            resolve(optimized);
+          } else {
+            resolve(file);
+          }
+        }, "image/jpeg", 0.85);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
+  }
+
+  window.handleVideoPhotosSelected = async function (e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
     for (const f of files) {
-      if (!selectedVideoPhotos.some(p => p.name === f.name && p.size === f.size)) {
+      if (!selectedVideoPhotos.some(p => p.name === f.name && Math.abs(p.size - f.size) < 100)) {
         if (selectedVideoPhotos.length < 70) {
-          selectedVideoPhotos.push(f);
+          try {
+            const opt = await optimizePhotoFile(f);
+            selectedVideoPhotos.push(opt);
+          } catch (err) {
+            selectedVideoPhotos.push(f);
+          }
         }
       }
     }
@@ -1251,18 +1318,13 @@
     }
 
     try {
-      const res = await fetch("/api/orders/create", {
+      const data = await fetchSafeJson("/api/orders/create", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${authToken}`
         },
         body: formData
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || "Buyurtma berishda xatolik");
-      }
 
       // Reset inputs
       originalFile = null;
@@ -1329,20 +1391,17 @@
     }
   };
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   window.downloadOrderAudio = async function (orderId, btnEl, orderTitle = "") {
     const origHtml = btnEl ? btnEl.innerHTML : "";
     if (btnEl) {
       btnEl.innerHTML = "⏳ Yuklanmoqda...";
       btnEl.disabled = true;
+      setTimeout(() => {
+        if (btnEl && btnEl.disabled) {
+          btnEl.innerHTML = origHtml;
+          btnEl.disabled = false;
+        }
+      }, 5000);
     }
     const cleanTitle = (orderTitle && orderTitle.trim())
       ? orderTitle.trim().replace(/[^\w\s-]/g, '').replace(/[-\s]+/g, '_')
@@ -1405,6 +1464,12 @@
     if (btnEl) {
       btnEl.innerHTML = "⏳ Yuklanmoqda...";
       btnEl.disabled = true;
+      setTimeout(() => {
+        if (btnEl && btnEl.disabled) {
+          btnEl.innerHTML = origHtml;
+          btnEl.disabled = false;
+        }
+      }, 5000);
     }
     const cleanTitle = (orderTitle && orderTitle.trim())
       ? orderTitle.trim().replace(/[^\w\s-]/g, '').replace(/[-\s]+/g, '_')

@@ -28,45 +28,52 @@ async def get_db():
             await session.close()
 
 from sqlalchemy import text
+import logging
+
+logger = logging.getLogger("vivern-db")
 
 async def init_db():
     # Import all models to ensure they are registered with Base.metadata
     import backend.app.models  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Safe column migrations for orders table
-        for col, col_type in [
-            ("audio_title", "VARCHAR(255) DEFAULT ''"),
-            ("custom_wishes_start_seconds", "FLOAT"),
-            ("custom_call_ending_seconds", "FLOAT"),
-            ("custom_starter_track_id", "VARCHAR(36)"),
-            ("custom_wishes_track_id", "VARCHAR(36)"),
-            ("custom_ending_track_id", "VARCHAR(36)"),
-            ("is_video_mode", "BOOLEAN DEFAULT FALSE"),
-            ("video_photos_json", "TEXT DEFAULT '[]'"),
-            ("host_video_path", "VARCHAR(512) DEFAULT ''"),
-            ("host_video_position", "VARCHAR(32) DEFAULT 'intro'"),
-            ("output_video_path", "VARCHAR(512) DEFAULT ''"),
-            ("output_video_duration", "FLOAT DEFAULT 0.0")
-        ]:
-            try:
-                await conn.execute(text(f"ALTER TABLE orders ADD COLUMN {col} {col_type}"))
-            except Exception:
-                pass
 
-        # Safe column migration for users table
-        for col, col_type in [
-            ("avatar_path", "VARCHAR(512)"),
-            ("extra_trials", "INTEGER DEFAULT 0"),
-            ("coins", "INTEGER DEFAULT 0"),
-            ("total_paid_som", "INTEGER DEFAULT 0"),
-            ("save_trials", "BOOLEAN DEFAULT 0"),
-            ("is_blocked", "BOOLEAN DEFAULT 0")
-        ]:
+        # Dynamic auto-migration for ALL tables and columns
+        for table_name, table in Base.metadata.tables.items():
             try:
-                await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
-            except Exception:
-                pass
+                res = await conn.execute(text(f"PRAGMA table_info({table_name})"))
+                existing_cols = {row[1] for row in res.fetchall()}
+                if not existing_cols:
+                    continue
+                for col in table.columns:
+                    if col.name not in existing_cols:
+                        col_type_str = str(col.type.compile(engine.dialect))
+                        default_clause = ""
+                        if col.default is not None and hasattr(col.default, 'arg'):
+                            arg = col.default.arg
+                            if isinstance(arg, bool):
+                                default_clause = f" DEFAULT {1 if arg else 0}"
+                            elif isinstance(arg, (int, float)):
+                                default_clause = f" DEFAULT {arg}"
+                            elif isinstance(arg, str):
+                                default_clause = f" DEFAULT '{arg}'"
+                        elif col.nullable:
+                            default_clause = " DEFAULT NULL"
+
+                        alter_sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type_str}{default_clause}"
+                        try:
+                            await conn.execute(text(alter_sql))
+                            logger.info(f"Auto-migrated column: {table_name}.{col.name} ({col_type_str})")
+                        except Exception as col_err:
+                            logger.warning(f"Could not add column {table_name}.{col.name}: {col_err}")
+            except Exception as tbl_err:
+                logger.warning(f"Error checking table {table_name}: {tbl_err}")
+
+        # Explicitly ensure users.updated_at exists
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
+        except Exception:
+            pass
 
         # Backfill existing coin purchases into total_paid_som & coin_transactions
         try:

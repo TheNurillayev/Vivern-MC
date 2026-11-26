@@ -367,15 +367,17 @@ async def send_user_gift(
     # Send telegram message to user if possible
     try:
         from backend.app.bot.bot import bot
+        import html
+        safe_title = html.escape(gift.title or "🎁 Maxsus Sovg'a")
         text = (
-            f"🎉 *Sizga yangi sovg'a berildi!*\n\n"
-            f"{gift.title}\n"
-            f"✨ *Bonus:* +{trials_to_add} ta bepul audio montaj imkoniyati qo'shildi!\n"
+            f"🎉 <b>Sizga yangi sovg'a berildi!</b>\n\n"
+            f"{safe_title}\n"
+            f"✨ <b>Bonus:</b> +{trials_to_add} ta bepul audio montaj imkoniyati qo'shildi!\n"
         )
         if req.message:
-            text += f"💬 *Xabar:* {req.message}\n"
-        text += "\n_Ilovaga kirib, yangi bepul imkoniyatingizdan foydalanishingiz mumkin!_ 🎂🎶"
-        await bot.send_message(chat_id=user_id, text=text, parse_mode="Markdown")
+            text += f"💬 <b>Xabar:</b> {html.escape(req.message)}\n"
+        text += "\n<i>Ilovaga kirib, yangi bepul imkoniyatingizdan foydalanishingiz mumkin!</i> 🎂🎶"
+        await bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
     except Exception:
         pass
 
@@ -443,15 +445,16 @@ async def add_user_coins(
     # Send telegram message to user if possible
     try:
         from backend.app.bot.bot import bot
+        import html
         text = (
-            f"🪙 *Hisobingizga tangalar qo'shildi!*\n\n"
-            f"✨ Qo'shildi: *+{coins_to_add} ta tanga*\n"
-            f"💰 Yangi balansingiz: *{user.coins} ta tanga*\n"
+            f"🪙 <b>Hisobingizga tangalar qo'shildi!</b>\n\n"
+            f"✨ Qo'shildi: <b>+{coins_to_add} ta tanga</b>\n"
+            f"💰 Yangi balansingiz: <b>{user.coins} ta tanga</b>\n"
         )
         if req.message:
-            text += f"💬 *Xabar:* {req.message}\n"
-        text += f"\n_Har bir professional audio montaj narxi: 10 ta tanga._ 🎂🎶"
-        await bot.send_message(chat_id=user_id, text=text, parse_mode="Markdown")
+            text += f"💬 <b>Xabar:</b> {html.escape(req.message)}\n"
+        text += f"\n<i>Har bir professional audio montaj narxi: 10 ta tanga.</i> 🎂🎶"
+        await bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
     except Exception:
         pass
 

@@ -142,7 +142,7 @@ async def send_delivery_audio(chat_id: int, audio_path: str, caption: str, title
         "chat_id": chat_id,
         "audio": audio_file,
         "caption": caption,
-        "parse_mode": "Markdown"
+        "parse_mode": "HTML"
     }
     if title:
         kwargs["title"] = title
@@ -155,7 +155,7 @@ async def send_delivery_video(chat_id: int, video_path: str, caption: str):
         chat_id=chat_id,
         video=video_file,
         caption=caption,
-        parse_mode="Markdown",
+        parse_mode="HTML",
         supports_streaming=True
     )
 
@@ -185,9 +185,9 @@ async def send_receipt_to_admins(
     for admin_id in settings.admin_ids:
         try:
             if is_image:
-                await bot.send_photo(chat_id=admin_id, photo=doc, caption=caption, parse_mode="Markdown", reply_markup=kb)
+                await bot.send_photo(chat_id=admin_id, photo=doc, caption=caption, parse_mode="HTML", reply_markup=kb)
             else:
-                await bot.send_document(chat_id=admin_id, document=doc, caption=caption, parse_mode="Markdown", reply_markup=kb)
+                await bot.send_document(chat_id=admin_id, document=doc, caption=caption, parse_mode="HTML", reply_markup=kb)
         except Exception as e:
             logger.error(f"Error sending receipt to admin {admin_id}: {e}")
 

@@ -15,7 +15,7 @@ async def run_bot():
         try:
             # Delete webhook if any to allow polling
             await bot.delete_webhook(drop_pending_updates=False)
-            await dp.start_polling(bot)
+            await dp.start_polling(bot, handle_signals=False)
         except Exception as e:
             logger.error(f"Telegram Bot polling error: {e}. Reconnecting in 5s...")
             await asyncio.sleep(5)
