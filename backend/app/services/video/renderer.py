@@ -102,12 +102,10 @@ class VideoRenderer:
         host_video_position: str = "intro"
     ) -> Dict[str, Any]:
         """
-        Full video rendering pipeline:
-        1. Prepares photo composites with blur background
-        2. Generates 4s clips (with rotating effects on every 3rd photo)
-        3. Loops photos if audio duration exceeds photo duration
-        4. Merges with birthday audio
-        5. Concatenates with host promo video (at intro or outro)
+        Studio vertical 9:16 video renderer (720x1280 @ 25fps):
+        1. Host promo video (muted, -an) plays during the phone dialing / keyboard ringing intro.
+        2. Customer photos smoothly loop with rotating effects every 3 photos for the remaining audio duration.
+        3. Video stream is assembled and cleanly muxed with the complete continuous master audio.
         """
         if not photo_paths:
             raise ValueError("Video yaratish uchun kamida bitta rasm talab qilinadi.")
@@ -127,32 +125,69 @@ class VideoRenderer:
         fps = 25
         clip_dur = 4.0
 
-        # Number of photo slots required to match audio length
-        num_slots = max(1, math.ceil(audio_dur / clip_dur))
-        logger.info(
-            f"Rendering video for order {order_id}: audio_dur={audio_dur:.1f}s, "
-            f"photos_uploaded={len(photo_paths)}, slots_needed={num_slots}"
-        )
-
         with tempfile.TemporaryDirectory() as td:
-            # Step 1: Pre-render composites for each unique photo
+            video_sequence_files = []
+
+            # Step 1: Process Host Promo Video (Muted, placed at intro)
+            host_dur = 0.0
+            if host_video_path and os.path.exists(host_video_path) and os.path.getsize(host_video_path) > 0:
+                raw_hdur = get_media_duration(host_video_path)
+                if raw_hdur > 0:
+                    # Cap host promo to between 2s and 12s (or max 20% of total audio)
+                    host_dur = round(min(max(raw_hdur, 2.0), min(12.0, max(5.0, audio_dur * 0.20))), 2)
+                    norm_host_path = os.path.join(td, "norm_host.mp4")
+
+                    host_vf = (
+                        "split[hv_bg][hv_fg];"
+                        "[hv_bg]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,boxblur=15:5,colorchannelmixer=aa=1:rr=0.4:gg=0.4:bb=0.4[hv_blur];"
+                        "[hv_fg]scale=720:1280:force_original_aspect_ratio=decrease[hv_scaled];"
+                        "[hv_blur][hv_scaled]overlay=(W-w)/2:(H-h)/2[hv_out]"
+                    )
+                    cmd_host = [
+                        ffmpeg_bin, "-y",
+                        "-t", str(host_dur),
+                        "-i", host_video_path,
+                        "-an",
+                        "-filter_complex", host_vf,
+                        "-map", "[hv_out]",
+                        "-c:v", "libx264",
+                        "-preset", "ultrafast",
+                        "-pix_fmt", "yuv420p",
+                        "-r", str(fps),
+                        norm_host_path
+                    ]
+                    proc_h = subprocess.run(cmd_host, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if proc_h.returncode == 0 and os.path.exists(norm_host_path) and os.path.getsize(norm_host_path) > 0:
+                        video_sequence_files.append(norm_host_path)
+                        logger.info(f"Host promo video normalized (muted, duration={host_dur}s)")
+                    else:
+                        logger.warning("Host promo normalization failed, skipping host intro.")
+                        host_dur = 0.0
+
+            # Step 2: Calculate remaining duration for customer photos slideshow
+            slideshow_dur = max(4.0, audio_dur - host_dur)
+            num_slots = max(1, math.ceil(slideshow_dur / clip_dur))
+            logger.info(
+                f"Rendering video for order {order_id}: audio_dur={audio_dur:.1f}s, "
+                f"host_dur={host_dur:.1f}s, slideshow_dur={slideshow_dur:.1f}s, "
+                f"photos_uploaded={len(photo_paths)}, slots_needed={num_slots}"
+            )
+
+            # Step 3: Pre-render composites for each unique photo
             composite_paths = []
             for idx, p_path in enumerate(photo_paths):
                 comp_out = os.path.join(td, f"comp_{idx:03d}.jpg")
                 self.create_photo_composite(p_path, comp_out, target_w, target_h)
                 composite_paths.append(comp_out)
 
-            # Step 2: Render each slot clip
-            clip_files = []
+            # Step 4: Render each photo clip
             effect_counter = 0
-
             for slot_idx in range(num_slots):
                 photo_idx = slot_idx % len(composite_paths)
                 comp_img = composite_paths[photo_idx]
 
-                # Determine duration: last clip matches exact audio duration
                 if slot_idx == num_slots - 1:
-                    this_dur = round(max(1.0, audio_dur - (slot_idx * clip_dur)), 2)
+                    this_dur = round(max(1.0, slideshow_dur - (slot_idx * clip_dur)), 2)
                 else:
                     this_dur = clip_dur
 
@@ -183,31 +218,30 @@ class VideoRenderer:
                     logger.error(f"FFmpeg clip render failed for slot {slot_idx}: {proc.stderr.decode('utf-8', errors='ignore')}")
                     raise RuntimeError("Rasm klipini render qilishda xatolik yuz berdi.")
 
-                clip_files.append(clip_out)
+                video_sequence_files.append(clip_out)
 
-            # Step 3: Concat video-only slideshow clips
-            slideshow_list = os.path.join(td, "slideshow_concat.txt")
-            with open(slideshow_list, "w", encoding="utf-8") as f:
-                for c in clip_files:
+            # Step 5: Concat all video clips (host promo intro + photos)
+            full_video_list = os.path.join(td, "full_video_concat.txt")
+            with open(full_video_list, "w", encoding="utf-8") as f:
+                for c in video_sequence_files:
                     safe_c = c.replace("\\", "/")
                     f.write(f"file '{safe_c}'\n")
 
-            slideshow_video = os.path.join(td, "slideshow_video.mp4")
-            cmd_concat_slideshow = [
+            full_video_track = os.path.join(td, "full_video_track.mp4")
+            cmd_concat = [
                 ffmpeg_bin, "-y",
                 "-f", "concat",
                 "-safe", "0",
-                "-i", slideshow_list,
+                "-i", full_video_list,
                 "-c", "copy",
-                slideshow_video
+                full_video_track
             ]
-            subprocess.run(cmd_concat_slideshow, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            subprocess.run(cmd_concat, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-            # Step 4: Mux slideshow video with birthday audio
-            slideshow_with_audio = os.path.join(td, "slideshow_with_audio.mp4")
+            # Step 6: Mux full video track with complete birthday audio
             cmd_mux = [
                 ffmpeg_bin, "-y",
-                "-i", slideshow_video,
+                "-i", full_video_track,
                 "-i", audio_path,
                 "-c:v", "copy",
                 "-c:a", "aac",
@@ -215,62 +249,20 @@ class VideoRenderer:
                 "-ar", "44100",
                 "-ac", "2",
                 "-shortest",
-                slideshow_with_audio
+                "-movflags", "+faststart",
+                final_video_output
             ]
             subprocess.run(cmd_mux, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-            # Step 5: Incorporate host promo video if available
-            if host_video_path and os.path.exists(host_video_path) and os.path.getsize(host_video_path) > 0:
-                normalized_host = os.path.join(td, "host_normalized.mp4")
-                # Normalize host video: 720x1280, 25fps, 44.1k stereo aac
-                host_vf = (
-                    "split[hv_bg][hv_fg];"
-                    "[hv_bg]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,boxblur=15:5,colorchannelmixer=aa=1:rr=0.4:gg=0.4:bb=0.4[hv_blur];"
-                    "[hv_fg]scale=720:1280:force_original_aspect_ratio=decrease[hv_scaled];"
-                    "[hv_blur][hv_scaled]overlay=(W-w)/2:(H-h)/2[hv_out]"
-                )
-                cmd_norm_host = [
-                    ffmpeg_bin, "-y",
-                    "-i", host_video_path,
-                    "-filter_complex", host_vf,
-                    "-map", "[hv_out]",
-                    "-map", "0:a?",
-                    "-c:v", "libx264",
-                    "-preset", "ultrafast",
-                    "-pix_fmt", "yuv420p",
-                    "-r", str(fps),
-                    "-c:a", "aac",
-                    "-b:a", "192k",
-                    "-ar", "44100",
-                    "-ac", "2",
-                    normalized_host
-                ]
-                proc_h = subprocess.run(cmd_norm_host, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if proc_h.returncode == 0 and os.path.exists(normalized_host):
-                    # Combine normalized host video and slideshow
-                    final_concat_list = os.path.join(td, "final_concat.txt")
-                    p1 = normalized_host if host_video_position == "intro" else slideshow_with_audio
-                    p2 = slideshow_with_audio if host_video_position == "intro" else normalized_host
+        final_dur = get_media_duration(final_video_output)
+        final_size = os.path.getsize(final_video_output) if os.path.exists(final_video_output) else 0
 
-                    with open(final_concat_list, "w", encoding="utf-8") as f:
-                        f.write(f"file '{p1.replace('\\', '/')}'\n")
-                        f.write(f"file '{p2.replace('\\', '/')}'\n")
-
-                    cmd_final = [
-                        ffmpeg_bin, "-y",
-                        "-f", "concat",
-                        "-safe", "0",
-                        "-i", final_concat_list,
-                        "-c", "copy",
-                        "-movflags", "+faststart",
-                        final_video_output
-                    ]
-                    subprocess.run(cmd_final, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                else:
-                    logger.warning("Failed to normalize host video, falling back to slideshow alone.")
-                    shutil.copy2(slideshow_with_audio, final_video_output)
-            else:
-                shutil.copy2(slideshow_with_audio, final_video_output)
+        logger.info(f"Video render completed for order {order_id}: duration={final_dur:.1f}s, size={final_size} bytes")
+        return {
+            "output_path": final_video_output,
+            "duration_seconds": final_dur,
+            "file_size_bytes": final_size
+        }
 
         final_dur = get_media_duration(final_video_output)
         final_size = os.path.getsize(final_video_output) if os.path.exists(final_video_output) else 0

@@ -82,7 +82,8 @@
       if (!isPaused && remaining > 0) {
         orderPriceEl.innerHTML = '<span style="color:var(--accent-emerald); font-weight:700;">Bepul</span>';
       } else {
-        orderPriceEl.innerHTML = '<span style="color:var(--accent-gold); font-weight:700;">10 Tanga</span>';
+        const cost = isVideoModeActive ? 20 : 10;
+        orderPriceEl.innerHTML = `<span style="color:var(--accent-gold); font-weight:700;">${cost} Tanga</span>`;
       }
     }
 
@@ -992,6 +993,7 @@
     const toggleBtn = document.getElementById("btn-toggle-video-mode");
     const videoSection = document.getElementById("card-video-mode-section");
     const submitBtn = document.getElementById("btn-submit-order");
+    const orderPriceEl = document.getElementById("order-price-label");
 
     if (toggleBtn) {
       toggleBtn.classList.toggle("active", isVideoModeActive);
@@ -1004,7 +1006,19 @@
       }
     }
     if (submitBtn) {
-      submitBtn.innerHTML = isVideoModeActive ? "🚀 Video Tabrik Yaratish" : "🚀 Audio Yaratish";
+      submitBtn.innerHTML = isVideoModeActive ? "🎬 Video Tabrik Yaratish" : "🚀 Professional Audio Tayyorlash";
+    }
+
+    if (orderPriceEl && currentUser) {
+      const totalAllowed = 3 + (currentUser.extra_trials || 0);
+      const remaining = Math.max(0, totalAllowed - (currentUser.trial_count || 0));
+      const isPaused = Boolean(currentUser.save_trials);
+      if (!isPaused && remaining > 0) {
+        orderPriceEl.innerHTML = '<span style="color:var(--accent-emerald); font-weight:700;">Bepul</span>';
+      } else {
+        const cost = isVideoModeActive ? 20 : 10;
+        orderPriceEl.innerHTML = `<span style="color:var(--accent-gold); font-weight:700;">${cost} Tanga</span>`;
+      }
     }
   };
 
@@ -1118,20 +1132,21 @@
     const isPaused = Boolean(currentUser?.save_trials);
     const hasFreeTrial = (!isPaused) && (remaining > 0);
     const userCoins = currentUser?.coins || 0;
+    const requiredCoins = isVideoModeActive ? 20 : 10;
 
-    if (!hasFreeTrial && userCoins < 10) {
+    if (!hasFreeTrial && userCoins < requiredCoins) {
       openCoinBalanceModal();
-      alert("⚠️ Buyurtma berish uchun hisobingizda kamida 10 ta tanga bo'lishi kerak.\n\nSizning balansingiz: " + userCoins + " ta tanga. Iltimos, hisobingizni to'ldiring!");
+      alert(`⚠️ Buyurtma berish uchun hisobingizda kamida ${requiredCoins} ta tanga bo'lishi kerak.\n\nSizning balansingiz: ${userCoins} ta tanga. Iltimos, hisobingizni to'ldiring!`);
       return;
     }
 
     const modalDesc = document.querySelector("#modal-confirm div[style*='color: var(--text-muted)']");
     if (modalDesc) {
-      const modeText = isVideoModeActive ? "audio va video tabrik montaji (rasmlar va boshlovchi videosi)" : "audio montaj";
+      const modeText = isVideoModeActive ? "audio va video tabrik montaji (rasmlar va reklama videosi)" : "audio montaj";
       if (hasFreeTrial) {
         modalDesc.innerHTML = `Tanlangan fayllar asosida professional ${modeText} boshlansinmi?<br><b style="color:var(--accent-emerald);">Narxi: Bepul (Sinov hisobidan)</b>`;
       } else {
-        modalDesc.innerHTML = `Tanlangan fayllar asosida professional ${modeText} boshlansinmi?<br><b style="color:var(--accent-gold);">Narxi: 10 Tanga (Balansingizdan sarflanadi)</b>`;
+        modalDesc.innerHTML = `Tanlangan fayllar asosida professional ${modeText} boshlansinmi?<br><b style="color:var(--accent-gold);">Narxi: ${requiredCoins} Tanga (Balansingizdan sarflanadi)</b>`;
       }
     }
 
@@ -1385,6 +1400,68 @@
     }
   };
 
+  window.downloadOrderVideo = async function (orderId, btnEl, orderTitle = "") {
+    const origHtml = btnEl ? btnEl.innerHTML : "";
+    if (btnEl) {
+      btnEl.innerHTML = "⏳ Yuklanmoqda...";
+      btnEl.disabled = true;
+    }
+    const cleanTitle = (orderTitle && orderTitle.trim())
+      ? orderTitle.trim().replace(/[^\w\s-]/g, '').replace(/[-\s]+/g, '_')
+      : "";
+    const fileName = cleanTitle ? `${cleanTitle}.mp4` : `Vivern_MC_Video_${orderId.substring(0, 8)}.mp4`;
+    const dlUrl = `/api/orders/${orderId}/download-video`;
+    const fullUrl = new URL(dlUrl, window.location.origin).href;
+
+    // 1. Try Telegram native downloadFile (Bot API 8.0+)
+    if (window.Telegram?.WebApp?.downloadFile) {
+      try {
+        window.Telegram.WebApp.downloadFile({
+          url: fullUrl,
+          file_name: fileName
+        }, function (accepted) {
+          if (btnEl) {
+            btnEl.innerHTML = origHtml;
+            btnEl.disabled = false;
+          }
+        });
+        return;
+      } catch (e) {
+        console.warn("Telegram downloadFile fallback", e);
+      }
+    }
+
+    // 2. Direct Blob Fetch & Download for mobile WebView & browsers
+    try {
+      const res = await fetch(fullUrl);
+      if (!res.ok) throw new Error("Videoni yuklab bo'lmadi");
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+        if (a.parentNode) a.parentNode.removeChild(a);
+      }, 2000);
+    } catch (e) {
+      console.warn("Direct blob video download fallback", e);
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(fullUrl);
+      } else {
+        window.open(fullUrl, "_blank");
+      }
+    } finally {
+      if (btnEl) {
+        btnEl.innerHTML = origHtml;
+        btnEl.disabled = false;
+      }
+    }
+  };
+
   let orderPendingDelete = null;
 
   window.promptDeleteOrder = function (orderId) {
@@ -1535,11 +1612,13 @@
             ${o.status === "completed" ? `
               <div style="margin-top: 10px;">
                 ${o.is_video_mode ? `
-                  <div style="margin-bottom: 8px;">
-                    <video controls playsinline preload="metadata" style="width: 100%; max-height: 260px; border-radius: 10px; background: #000; display: block;">
-                      <source src="/api/orders/${o.id}/download-video" type="video/mp4">
-                      Brauzeringiz videoni qo'llab-quvvatlamaydi.
-                    </video>
+                  <div style="margin-bottom: 8px; text-align: center;">
+                    <div style="position: relative; max-width: 200px; margin: 0 auto; border-radius: 10px; overflow: hidden; background: #000; box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
+                      <video id="video-player-${o.id}" playsinline preload="metadata" controls style="width: 100%; max-height: 160px; object-fit: contain; display: block;">
+                        <source src="/api/orders/${o.id}/download-video" type="video/mp4">
+                        Brauzeringiz videoni qo'llab-quvvatlamaydi.
+                      </video>
+                    </div>
                   </div>
                 ` : ''}
                 <audio controls src="${dlUrl}" style="width:100%; height:36px;"></audio>
@@ -1553,9 +1632,9 @@
                 </div>
                 <div id="order-actions-${o.id}" class="order-action-buttons-row" style="display: none; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; flex-wrap: wrap;">
                   ${o.is_video_mode ? `
-                    <a href="/api/orders/${o.id}/download-video" download class="btn btn-secondary" style="flex: 1; min-width: 120px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; text-decoration: none; text-align: center; display: inline-block;">
+                    <button type="button" onclick="downloadOrderVideo('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn btn-secondary" style="flex: 1; min-width: 120px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; cursor: pointer; text-align: center;">
                       🎬 Video Yuklash
-                    </a>
+                    </button>
                   ` : ''}
                   <button type="button" onclick="downloadOrderAudio('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn btn-secondary" style="flex: 1; min-width: 110px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; text-align: center;">
                     ⬇️ MP3 Yuklash

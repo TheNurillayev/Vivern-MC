@@ -2,6 +2,7 @@ import os
 import shutil
 import uuid
 from pathlib import Path
+from typing import Optional
 from backend.app.core.config import settings
 
 class LocalStorageService:
@@ -62,6 +63,48 @@ class LocalStorageService:
 
     def file_exists(self, path: str) -> bool:
         return os.path.exists(path)
+
+    def resolve_asset_path(self, raw_path: Optional[str]) -> Optional[str]:
+        """
+        Cross-platform resolver for media paths stored in DB (handles Windows <-> Linux
+        path differences across local dev and Railway containers).
+        """
+        if not raw_path or not str(raw_path).strip():
+            return None
+        if os.path.exists(raw_path) and os.path.getsize(raw_path) > 0:
+            return raw_path
+
+        # Normalize filename
+        filename = os.path.basename(str(raw_path).replace("\\", "/"))
+        if not filename:
+            return None
+
+        # 1. Search storage/library
+        cand1 = self.library_dir / filename
+        if cand1.exists() and cand1.stat().st_size > 0:
+            return str(cand1)
+
+        # 2. Search storage/uploads
+        cand2 = self.uploads_dir / filename
+        if cand2.exists() and cand2.stat().st_size > 0:
+            return str(cand2)
+
+        # 3. Search storage root
+        cand3 = self.base_dir / filename
+        if cand3.exists() and cand3.stat().st_size > 0:
+            return str(cand3)
+
+        # 4. Search default_assets
+        for base_cand in [
+            Path(settings.BASE_DIR) / "default_assets" / "library" / filename,
+            Path(settings.BASE_DIR) / "backend" / "default_assets" / "library" / filename,
+            Path(os.getcwd()) / "MC - Source" / filename,
+            Path(os.getcwd()) / "MC - Source" / "default_assets" / "library" / filename
+        ]:
+            if base_cand.exists() and base_cand.stat().st_size > 0:
+                return str(base_cand)
+
+        return None
 
     def delete_file(self, path: str) -> bool:
         try:

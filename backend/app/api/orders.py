@@ -79,22 +79,25 @@ async def create_order(
     total_allowed = settings.FREE_TRIAL_GENERATIONS + (user.extra_trials or 0)
     is_free = (not user.save_trials) and (user.trial_count < total_allowed)
 
+    required_coins = 20 if is_video_mode else 10
+    unit_price = (settings.PRICE_PER_ORDER_SOM * 2) if is_video_mode else settings.PRICE_PER_ORDER_SOM
+
     if not is_free:
-        # Paid order requires 10 Coins
         user_coins = user.coins or 0
-        if user_coins < 10:
+        if user_coins < required_coins:
             if os.path.exists(tmp_orig_path):
                 os.remove(tmp_orig_path)
             if os.path.exists(tmp_spec_path):
                 os.remove(tmp_spec_path)
+            mode_label = "Video" if is_video_mode else "Audio"
             raise HTTPException(
                 status_code=402,
-                detail="Balansingizda yetarli tanga mavjud emas. Buyurtma uchun 10 ta tanga kerak. Iltimos, hisobingizni to'ldiring."
+                detail=f"Balansingizda yetarli tanga mavjud emas. {mode_label} tabrik buyurtmasi uchun {required_coins} ta tanga kerak. Iltimos, hisobingizni to'ldiring."
             )
-        # Deduct 10 coins from user balance
-        user.coins = user_coins - 10
+        # Deduct coins from user balance
+        user.coins = user_coins - required_coins
 
-    price = 0 if is_free else settings.PRICE_PER_ORDER_SOM
+    price = 0 if is_free else unit_price
     initial_status = "queued"
 
     order_id = str(uuid.uuid4())
@@ -255,9 +258,12 @@ async def preview_customer_library_track(
     from backend.app.models.library_asset import LibraryAsset
     result = await db.execute(select(LibraryAsset).where(LibraryAsset.id == asset_id))
     asset = result.scalar_one_or_none()
-    if not asset or not asset.storage_path or not os.path.exists(asset.storage_path):
+    if not asset or not asset.storage_path:
         raise HTTPException(status_code=404, detail="Audio trek topilmadi")
-    return FileResponse(asset.storage_path, media_type="audio/mpeg", filename=asset.filename)
+    resolved_path = storage_service.resolve_asset_path(asset.storage_path)
+    if not resolved_path:
+        raise HTTPException(status_code=404, detail="Audio trek fayli topilmadi")
+    return FileResponse(resolved_path, media_type="audio/mpeg", filename=asset.filename)
 
 @router.get("/{order_id}", response_model=OrderDetailResponse)
 async def get_order_detail(

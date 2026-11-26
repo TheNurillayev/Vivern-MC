@@ -16,9 +16,11 @@ from backend.app.services.speech import get_speech_recognizer
 from backend.app.services.analysis import get_conversation_analyzer
 from backend.app.services.audio.renderer import audio_renderer
 from backend.app.services.video.renderer import video_renderer
+from backend.app.services.storage.local_storage import storage_service
 from backend.app.bot.bot import send_delivery_audio, send_delivery_video
 
 logger = logging.getLogger("vivern-worker")
+RENDER_SEMAPHORE = asyncio.Semaphore(1)
 
 async def get_active_asset_path(category: str, session: AsyncSession) -> str:
     res = await session.execute(
@@ -28,16 +30,21 @@ async def get_active_asset_path(category: str, session: AsyncSession) -> str:
     )
     asset = res.scalars().first()
     if asset:
-        return asset.storage_path
-    # If none marked active, get latest
+        resolved = storage_service.resolve_asset_path(asset.storage_path)
+        if resolved:
+            return resolved
+
+    # If none marked active or path not found on disk, search all in category
     res_any = await session.execute(
         select(LibraryAsset)
         .where(LibraryAsset.category == category)
         .order_by(LibraryAsset.created_at.desc())
     )
-    asset_any = res_any.scalars().first()
-    if asset_any:
-        return asset_any.storage_path
+    for a in res_any.scalars().all():
+        resolved = storage_service.resolve_asset_path(a.storage_path)
+        if resolved:
+            return resolved
+
     raise ValueError(f"Musiqa kutubxonasida '{category}' toifasi uchun faol trek topilmadi!")
 
 async def process_single_order(order_id: str):
@@ -94,8 +101,8 @@ async def process_single_order(order_id: str):
             if order.custom_starter_track_id:
                 res_starter = await session.execute(select(LibraryAsset).where(LibraryAsset.id == order.custom_starter_track_id))
                 cust_starter = res_starter.scalar_one_or_none()
-                if cust_starter and os.path.exists(cust_starter.storage_path):
-                    starter_path = cust_starter.storage_path
+                if cust_starter:
+                    starter_path = storage_service.resolve_asset_path(cust_starter.storage_path)
             if not starter_path:
                 starter_path = await get_active_asset_path("starter", session)
 
@@ -103,8 +110,8 @@ async def process_single_order(order_id: str):
             if order.custom_wishes_track_id:
                 res_wishes = await session.execute(select(LibraryAsset).where(LibraryAsset.id == order.custom_wishes_track_id))
                 cust_wishes = res_wishes.scalar_one_or_none()
-                if cust_wishes and os.path.exists(cust_wishes.storage_path):
-                    wishes_path = cust_wishes.storage_path
+                if cust_wishes:
+                    wishes_path = storage_service.resolve_asset_path(cust_wishes.storage_path)
             if not wishes_path:
                 wishes_path = await get_active_asset_path("wishes", session)
 
@@ -112,8 +119,8 @@ async def process_single_order(order_id: str):
             if order.custom_ending_track_id:
                 res_ending = await session.execute(select(LibraryAsset).where(LibraryAsset.id == order.custom_ending_track_id))
                 cust_ending = res_ending.scalar_one_or_none()
-                if cust_ending and os.path.exists(cust_ending.storage_path):
-                    ending_path = cust_ending.storage_path
+                if cust_ending:
+                    ending_path = storage_service.resolve_asset_path(cust_ending.storage_path)
             if not ending_path:
                 ending_path = await get_active_asset_path("call_ending", session)
 
@@ -132,19 +139,22 @@ async def process_single_order(order_id: str):
             else:
                 final_ending_start = float(analysis.call_ending_start_seconds)
 
-            render_res = audio_renderer.render_production(
-                order_id=order.id,
-                original_recording_path=order.original_recording_path,
-                special_music_path=order.special_music_path,
-                number_call_path=intro_path,
-                starter_music_path=starter_path,
-                wishes_music_path=wishes_path,
-                call_ending_path=ending_path,
-                wishes_start_seconds=final_wishes_start,
-                call_ending_start_seconds=final_ending_start,
-                music_volume_db=-18.0,
-                is_video_mode=bool(order.is_video_mode)
-            )
+            # Render Audio with Semaphore to prevent server CPU/RAM overload
+            async with RENDER_SEMAPHORE:
+                render_res = await asyncio.to_thread(
+                    audio_renderer.render_production,
+                    order_id=order.id,
+                    original_recording_path=order.original_recording_path,
+                    special_music_path=order.special_music_path,
+                    number_call_path=intro_path,
+                    starter_music_path=starter_path,
+                    wishes_music_path=wishes_path,
+                    call_ending_path=ending_path,
+                    wishes_start_seconds=final_wishes_start,
+                    call_ending_start_seconds=final_ending_start,
+                    music_volume_db=-17.0,
+                    is_video_mode=bool(order.is_video_mode)
+                )
 
             order.output_audio_path = render_res["output_path"]
             order.output_audio_duration = render_res["duration_seconds"]
@@ -156,13 +166,15 @@ async def process_single_order(order_id: str):
                     photo_paths = json.loads(order.video_photos_json or "[]")
                     if photo_paths:
                         logger.info(f"Rendering Video Tabrik for order {order.id} ({len(photo_paths)} photos)...")
-                        video_res = video_renderer.render_video(
-                            order_id=order.id,
-                            audio_path=order.output_audio_path,
-                            photo_paths=photo_paths,
-                            host_video_path=order.host_video_path if (order.host_video_path and os.path.exists(order.host_video_path)) else None,
-                            host_video_position=order.host_video_position or "intro"
-                        )
+                        async with RENDER_SEMAPHORE:
+                            video_res = await asyncio.to_thread(
+                                video_renderer.render_video,
+                                order_id=order.id,
+                                audio_path=order.output_audio_path,
+                                photo_paths=photo_paths,
+                                host_video_path=order.host_video_path if (order.host_video_path and os.path.exists(order.host_video_path)) else None,
+                                host_video_position=order.host_video_position or "intro"
+                            )
                         order.output_video_path = video_res["output_path"]
                         order.output_video_duration = video_res["duration_seconds"]
                         logger.info(f"Video Tabrik successfully rendered: {order.output_video_path} ({order.output_video_duration}s)")
@@ -199,46 +211,71 @@ async def process_single_order(order_id: str):
 
             await session.commit()
 
-            # Stage 5: Telegram Delivery
+            # Stage 5: Delivery
             title_text = f"🏷️ *Nomi:* {order.audio_title}\n" if (order.audio_title and order.audio_title.strip()) else ""
-            caption = (
-                f"🎉 *Sizning tabrik audio montajingiz tayyor!*\n\n"
-                f"{title_text}"
-                f"🆔 Buyurtma: `#{order.id[:8]}`\n"
-                f"⏱ Davomiyligi: {round(order.output_audio_duration, 1)} soniya\n\n"
-                f"Tug'ilgan kun egasini chiroyli tabriklashingizda omad tilaymiz! 🎂🎶"
-            )
 
-            try:
-                msg = await send_delivery_audio(
-                    chat_id=order.user_id,
-                    audio_path=order.output_audio_path,
-                    caption=caption,
-                    title=order.audio_title if (order.audio_title and order.audio_title.strip()) else f"Vivern MC - #{order.id[:8]}"
+            if order.is_video_mode:
+                # Video mode delivery
+                video_delivered = False
+                if order.output_video_path and os.path.exists(order.output_video_path):
+                    try:
+                        video_caption = (
+                            f"🎬 *Sizning tabrik video montajingiz tayyor!*\n\n"
+                            f"{title_text}"
+                            f"🆔 Buyurtma: `#{order.id[:8]}`\n"
+                            f"⏱ Video davomiyligi: {round(order.output_video_duration, 1)} soniya\n\n"
+                            f"Yaqinlaringiz uchun esda qolarli bayramona video tuhfa! 🎂🎥"
+                        )
+                        v_msg = await send_delivery_video(
+                            chat_id=order.user_id,
+                            video_path=order.output_video_path,
+                            caption=video_caption
+                        )
+                        if v_msg:
+                            video_delivered = True
+                            order.delivered_to_telegram = True
+                            order.telegram_message_id = v_msg.message_id
+                    except Exception as tg_vid_err:
+                        logger.error(f"Telegram video delivery error for user {order.user_id}: {tg_vid_err}")
+
+                if not video_delivered:
+                    # User requirement: agar bot videoni tashlab bera olmasa, mp3 versiyasini ham tashlab bermasin;
+                    # Uning o'rniga, mini appga kirib Tarix bo'limidan yuklab olishini tushuntirsin.
+                    try:
+                        from backend.app.bot.bot import bot
+                        await bot.send_message(
+                            chat_id=order.user_id,
+                            text=(
+                                f"🎬 *Buyurtmangiz muvaffaqiyatli tayyor bo'ldi!* `#{order.id[:8]}`\n\n"
+                                f"{title_text}"
+                                f"⚠️ Video fayl hajmi yuqori sifatda bo'lganligi sababli to'g'ridan-to'g'ri Telegram orqali yuborilmadi.\n\n"
+                                f"Iltimos, **Vivern MC Mini App** ilovasiga kiring va **Tarix** bo'limidagi **'🎬 Video Yuklash'** tugmasi orqali videoni yuqori sifatda yuklab oling! 📲📥"
+                            ),
+                            parse_mode="Markdown"
+                        )
+                    except Exception as notify_err:
+                        logger.error(f"Failed to send fallback notice to user {order.user_id}: {notify_err}")
+            else:
+                # Audio mode delivery
+                caption = (
+                    f"🎉 *Sizning tabrik audio montajingiz tayyor!*\n\n"
+                    f"{title_text}"
+                    f"🆔 Buyurtma: `#{order.id[:8]}`\n"
+                    f"⏱ Davomiyligi: {round(order.output_audio_duration, 1)} soniya\n\n"
+                    f"Tug'ilgan kun egasini chiroyli tabriklashingizda omad tilaymiz! 🎂🎶"
                 )
-                if msg:
-                    order.delivered_to_telegram = True
-                    order.telegram_message_id = msg.message_id
-            except Exception as tg_err:
-                logger.error(f"Telegram delivery error for user {order.user_id}: {tg_err}")
-
-            # Send video if rendered
-            if order.is_video_mode and order.output_video_path and os.path.exists(order.output_video_path):
                 try:
-                    video_caption = (
-                        f"🎬 *Sizning tabrik video montajingiz tayyor!*\n\n"
-                        f"{title_text}"
-                        f"🆔 Buyurtma: `#{order.id[:8]}`\n"
-                        f"⏱ Video davomiyligi: {round(order.output_video_duration, 1)} soniya\n\n"
-                        f"Yaqinlaringiz uchun esda qolarli bayramona video tuhfa! 🎂🎥"
-                    )
-                    await send_delivery_video(
+                    msg = await send_delivery_audio(
                         chat_id=order.user_id,
-                        video_path=order.output_video_path,
-                        caption=video_caption
+                        audio_path=order.output_audio_path,
+                        caption=caption,
+                        title=order.audio_title if (order.audio_title and order.audio_title.strip()) else f"Vivern MC - #{order.id[:8]}"
                     )
-                except Exception as tg_vid_err:
-                    logger.error(f"Telegram video delivery error for user {order.user_id}: {tg_vid_err}")
+                    if msg:
+                        order.delivered_to_telegram = True
+                        order.telegram_message_id = msg.message_id
+                except Exception as tg_err:
+                    logger.error(f"Telegram delivery error for user {order.user_id}: {tg_err}")
 
             # Update User trial count
             if order.is_free_trial:

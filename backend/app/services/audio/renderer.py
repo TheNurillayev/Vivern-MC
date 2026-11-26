@@ -34,7 +34,7 @@ class AudioProductionRenderer:
         wishes_start_seconds: float,
         call_ending_start_seconds: float,
         outro_max_duration: float = 30.0,
-        music_volume_db: float = -18.0,
+        music_volume_db: float = -17.0,
         special_music_volume: float = 0.58,
         is_video_mode: bool = False
     ) -> Dict[str, Any]:

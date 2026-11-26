@@ -11,12 +11,14 @@ logger = logging.getLogger("vivern-runner")
 
 async def run_bot():
     logger.info("Starting Telegram Bot polling for @VivernMC_Bot...")
-    try:
-        # Delete webhook if any to allow polling
-        await bot.delete_webhook(drop_pending_updates=False)
-        await dp.start_polling(bot)
-    except Exception as e:
-        logger.error(f"Telegram Bot polling error: {e}")
+    while True:
+        try:
+            # Delete webhook if any to allow polling
+            await bot.delete_webhook(drop_pending_updates=False)
+            await dp.start_polling(bot)
+        except Exception as e:
+            logger.error(f"Telegram Bot polling error: {e}. Reconnecting in 5s...")
+            await asyncio.sleep(5)
 
 async def run_fastapi():
     config = uvicorn.Config(
@@ -30,11 +32,16 @@ async def run_fastapi():
     await server.serve()
 
 async def main():
-    await asyncio.gather(
-        run_fastapi(),
-        run_bot(),
-        order_worker_loop()
-    )
+    while True:
+        try:
+            await asyncio.gather(
+                run_fastapi(),
+                run_bot(),
+                order_worker_loop()
+            )
+        except Exception as e:
+            logger.error(f"Main loop error: {e}. Restarting tasks in 5s...")
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
