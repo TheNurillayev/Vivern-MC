@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from backend.app.core.database import get_db
 from backend.app.core.config import settings
+from backend.app.core.disk_cleaner import get_disk_status
 import imageio_ffmpeg
 
 router = APIRouter(prefix="/api", tags=["health"])
@@ -34,10 +35,13 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     railway_vol_path = os.getenv("RAILWAY_VOLUME_MOUNT_PATH")
     railway_vol_name = os.getenv("RAILWAY_VOLUME_NAME")
 
+    disk_info = get_disk_status()
+
     return {
-        "status": "healthy" if db_ok and ffmpeg_ok and storage_ok else "degraded",
+        "status": "healthy" if db_ok and ffmpeg_ok and storage_ok and not disk_info.get("is_critical") else "degraded",
         "service": "Vivern MC Audio Production Service",
         "version": "1.0.0",
+        "disk": disk_info,
         "database": {
             "connected": db_ok,
             "engine": "sqlite" if settings.DATABASE_URL.startswith("sqlite") else "postgresql"

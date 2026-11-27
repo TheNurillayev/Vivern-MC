@@ -296,11 +296,33 @@ async def process_single_order(order_id: str):
             await session.commit()
             logger.info(f"Order {order_id} successfully completed in {order.processing_time_seconds}s!")
 
+            # Clean up intermediate uploaded photos and host video to keep disk usage low
+            if order.is_video_mode and order.video_photos_json:
+                try:
+                    p_list = json.loads(order.video_photos_json)
+                    for p in p_list:
+                        storage_service.delete_file(p)
+                    if order.host_video_path:
+                        storage_service.delete_file(order.host_video_path)
+                except Exception:
+                    pass
+
         except Exception as e:
             logger.exception(f"Order {order_id} failed: {e}")
             order.status = "failed"
             order.error_message = str(e)
             await session.commit()
+
+            # Clean up intermediate uploaded photos and host video on failure
+            if getattr(order, 'is_video_mode', False) and getattr(order, 'video_photos_json', None):
+                try:
+                    p_list = json.loads(order.video_photos_json)
+                    for p in p_list:
+                        storage_service.delete_file(p)
+                    if getattr(order, 'host_video_path', None):
+                        storage_service.delete_file(order.host_video_path)
+                except Exception:
+                    pass
 
 async def order_worker_loop():
     logger.info("Order background worker started.")

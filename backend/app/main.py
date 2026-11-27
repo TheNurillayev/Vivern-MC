@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.database import init_db
 from backend.app.core.config import settings
+from backend.app.core.disk_cleaner import run_disk_cleanup
 from backend.app.api.health import router as health_router
 from backend.app.api.auth import router as auth_router
 from backend.app.api.admin import router as admin_router
@@ -19,6 +20,12 @@ logger = logging.getLogger("vivern")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing Vivern MC backend...")
+    # Clean up disk, /tmp, orphaned files and truncate WAL before DB touches
+    try:
+        run_disk_cleanup(force=False)
+    except Exception as cleanup_err:
+        logger.warning(f"Startup disk cleanup error: {cleanup_err}")
+
     await init_db()
     # Ensure storage paths
     settings.storage_path

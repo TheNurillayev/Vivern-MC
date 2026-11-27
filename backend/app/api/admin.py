@@ -562,3 +562,10 @@ async def get_cost_summary(
         "total_revenue_som": total_revenue,
         "average_processing_seconds": avg_time
     }
+
+@router.post("/system/disk-cleanup")
+async def trigger_disk_cleanup(admin: User = Depends(get_admin_user)):
+    from backend.app.core.disk_cleaner import run_disk_cleanup
+    result = run_disk_cleanup(force=True)
+    return {"message": "Disk tozalash muvaffaqiyatli yakunlandi", "details": result}
+
