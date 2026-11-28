@@ -49,7 +49,11 @@ class AudioProductionRenderer:
         meta_ending = validate_audio_file(call_ending_path)
 
         speech_dur = max(2.0, meta_orig["duration_seconds"])
-        intro_dur = max(1.0, meta_intro["duration_seconds"])
+        # Exactly 15.0s intro for video mode, or up to 15.0s for audio mode
+        if is_video_mode:
+            intro_dur = 15.0
+        else:
+            intro_dur = round(min(15.0, max(2.0, meta_intro["duration_seconds"])), 2)
 
         # Bound transition points cleanly to speech duration
         wishes_t = min(max(wishes_start_seconds, 1.0), max(1.5, speech_dur - 2.0))
@@ -68,8 +72,8 @@ class AudioProductionRenderer:
         # Convert music volume db to linear gain (-17 dB is approx 0.1413 for audible studio background)
         linear_gain = round(10 ** (music_volume_db / 20.0), 4)
 
-        # 2-second seamless crossfade between background music sections
-        cf_dur = 2.0
+        # 1.8-second seamless crossfade between background music sections
+        cf_dur = 1.8
         cf_half = cf_dur / 2.0
 
         dur1 = round(max(2.0, wishes_t + cf_half), 3)
@@ -90,9 +94,9 @@ class AudioProductionRenderer:
         d3_in = round(min(cf_dur, max(0.2, dur3 * 0.4)), 3)
 
         filter_complex = (
-            f"[0:a]atrim=0:{intro_dur},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo[a_intro];"
+            f"[0:a]atrim=0:{intro_dur},asetpts=PTS-STARTPTS,afade=t=out:st={max(0.0, intro_dur - 0.5)}:d=0.5,aformat=sample_rates=44100:channel_layouts=stereo[a_intro];"
             f"[1:a]atrim=0:{speech_dur},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,"
-            f"highpass=f=80,lowpass=f=8500,afftdn=nf=-20,equalizer=f=2800:t=q:w=1.2:g=1.5,dynaudnorm=f=200:m=6:p=0.85[a_speech];"
+            f"highpass=f=80,lowpass=f=8000,afftdn=nf=-20,equalizer=f=2500:t=q:w=1.0:g=1.2,dynaudnorm=f=250:m=3.5:p=0.9:s=12[a_speech];"
             f"[2:a]atrim=0:{dur1},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume={linear_gain},"
             f"afade=t=out:st={st1}:d={d1}[bg1];"
             f"[3:a]atrim=0:{dur2},asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo,volume={linear_gain},"

@@ -1626,12 +1626,14 @@
           statusBadge = '<span class="badge-tag" style="background:var(--accent-emerald);">✓ Tayyor</span>';
         } else if (o.status === "failed") {
           statusBadge = '<span class="badge-tag" style="background:var(--danger-color);">Xatolik</span>';
-        } else if (["queued", "transcribing", "analysing", "rendering"].includes(o.status)) {
+        } else if (!["completed", "failed", "cancelled"].includes(o.status)) {
           hasActiveOrders = true;
           let stageText = "Tayyorlanmoqda...";
-          if (o.status === "transcribing") stageText = "🎙️ Tahlil qilinmoqda...";
-          else if (o.status === "analysing") stageText = "🧠 Segmentlar aniqlanmoqda...";
-          else if (o.status === "rendering") stageText = "⚡ FFmpeg montaj...";
+          if (o.status === "transcribing") stageText = "🎙️ Suhbat tahlil qilinmoqda...";
+          else if (o.status === "analysing") stageText = "🧠 Tilaklar aniqlanmoqda...";
+          else if (o.status === "rendering") {
+            stageText = o.is_video_mode ? "🎬 Video montaj (effektlar)..." : "⚡ Ovoz montaj qilinmoqda...";
+          }
           statusBadge = `<span class="badge-tag" style="background:var(--accent-gold); color:#111;">${stageText}</span>`;
         }
 
@@ -1716,10 +1718,10 @@
                 </button>
               </div>
             `}
-            ${["queued", "processing", "analyzing", "mixing"].includes(o.status) ? `
+            ${!["completed", "failed", "cancelled"].includes(o.status) ? `
               <div style="font-size: 0.75rem; color: var(--accent-gold); margin-top: 6px; display:flex; align-items:center; gap:6px;">
                 <span class="spinner" style="width:14px; height:14px; border-width:2px;"></span>
-                <span>Serverda qayta ishlanmoqda, sahifani yangilash shart emas...</span>
+                <span>${o.is_video_mode ? "Video tabrik yaratilmoqda, sahifani yangilash shart emas..." : "Serverda qayta ishlanmoqda, sahifani yangilash shart emas..."}</span>
               </div>
             ` : ""}
             ${o.error_message ? `<div style="color:var(--danger-color); font-size:0.75rem; margin-top:6px;">${o.error_message}</div>` : ""}
@@ -1727,14 +1729,21 @@
         `;
       }).join("");
 
-      // If any order is still processing, poll again in 2.5 seconds
+      // If any order is still processing, poll again in 2 seconds
       if (hasActiveOrders) {
         pollTimer = setTimeout(() => {
           loadOrders(true);
-        }, 2500);
+        }, 2000);
       }
     } catch (err) {
-      listEl.innerHTML = `<div style="color:var(--danger-color); text-align:center; padding:20px;">${err.message}</div>`;
+      if (!isAutoPoll) {
+        listEl.innerHTML = `<div style="color:var(--danger-color); text-align:center; padding:20px;">${escapeHtml(err.message)}</div>`;
+      } else {
+        // Silently retry auto-polling after brief pause so polling doesn't die on temporary network blips
+        pollTimer = setTimeout(() => {
+          loadOrders(true);
+        }, 3000);
+      }
     }
   };
 

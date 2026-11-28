@@ -107,57 +107,98 @@ async def seed_default_library_assets():
     import shutil
     from backend.app.models.library_asset import LibraryAsset
     from backend.app.services.audio.validator import validate_audio_file
-    from sqlalchemy import select, func
+    from sqlalchemy import select, delete
 
     lib_dir = settings.storage_path / "library"
     lib_dir.mkdir(parents=True, exist_ok=True)
 
-    # Sync any bundled library audio files into storage_path/library if missing
+    # Sync bundled source tracks into storage_path/library if missing
     candidate_sources = [
+        settings.BASE_DIR / "MC - Source",
         settings.BASE_DIR / "default_assets" / "library",
         settings.BASE_DIR / "storage" / "library",
     ]
+    source_map = {
+        "Kilaviatura (starter).m4a": "number_call_v11_0f3022e4.m4a",
+        "Kiss the Rain.mp3": "starter_v11_ba3471ac.mp3",
+        "Wishes Music.mp3": "wishes_v1_ef68ec30.mp3",
+        "Wishes 2.mp3": "wishes_v2_wishes2.mp3",
+        "Aşk Mühürü.mp3": "starter_v2_ask_muhuru.mp3",
+    }
     for c_dir in candidate_sources:
-        if c_dir.exists() and c_dir.resolve() != lib_dir.resolve():
-            for src_file in c_dir.glob("*.*"):
-                dest_file = lib_dir / src_file.name
-                if not dest_file.exists():
+        if c_dir.exists():
+            for src_name, target_name in source_map.items():
+                s_file = c_dir / src_name
+                d_file = lib_dir / target_name
+                if s_file.exists() and not d_file.exists():
                     try:
-                        shutil.copy2(src_file, dest_file)
+                        shutil.copy2(s_file, d_file)
                     except Exception:
                         pass
 
+    # Ensure call_ending track exists
+    ce_src = lib_dir / "starter_v11_ba3471ac.mp3"
+    ce_dst = lib_dir / "call_ending_v11_f4ab917e.mp3"
+    if ce_src.exists() and not ce_dst.exists():
+        try:
+            shutil.copy2(ce_src, ce_dst)
+        except Exception:
+            pass
+
+    # Register/Update studio library tracks in DB
+    defaults = [
+        ("number_call", "Raqam terish va Qo'ng'iroq (15s)", "number_call_v11_0f3022e4.m4a", True, 11),
+        ("starter", "Kiss the Rain (Asosiy fon)", "starter_v11_ba3471ac.mp3", True, 11),
+        ("starter", "Aşk Mühürü (Romantik fon)", "starter_v2_ask_muhuru.mp3", False, 10),
+        ("wishes", "Wishes 1 (Klassik tilaklar musiqasi)", "wishes_v1_ef68ec30.mp3", True, 11),
+        ("wishes", "Wishes 2 (Hissiyotli ohang)", "wishes_v2_wishes2.mp3", False, 10),
+        ("call_ending", "Kiss the Rain Outro", "call_ending_v11_f4ab917e.mp3", True, 11),
+    ]
+
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(func.count(LibraryAsset.id)))
-        count = result.scalar_one()
-        if count == 0:
-            defaults = [
-                ("number_call", "Number & Call (starter).m4a", "number_call_v11_0f3022e4.m4a"),
-                ("starter", "Kiss the Rain.mp3", "starter_v11_ba3471ac.mp3"),
-                ("call_ending", "Kiss the Rain.mp3 (Ending)", "call_ending_v11_f4ab917e.mp3"),
-                ("wishes", "Wishes Music.mp3", "wishes_v1_ef68ec30.mp3"),
-            ]
-            for category, title, filename in defaults:
-                file_path = lib_dir / filename
-                if file_path.exists():
-                    try:
-                        meta = validate_audio_file(str(file_path))
-                        dur = meta.get("duration_seconds", 60.0)
-                        fmt = meta.get("format", "mp3")
-                        size = meta.get("file_size_bytes", file_path.stat().st_size)
-                    except Exception:
-                        dur, fmt, size = 60.0, "mp3", file_path.stat().st_size
-                    asset = LibraryAsset(
-                        category=category,
-                        title=title,
-                        filename=filename,
-                        storage_path=str(file_path),
-                        duration_seconds=dur,
-                        format=fmt,
-                        file_size_bytes=size,
-                        is_active=True,
-                        version=1,
-                        uploaded_by="8449563084"
-                    )
-                    session.add(asset)
-            await session.commit()
+        # Remove dummy wav tracks (duration <= 3.0s or .wav)
+        await session.execute(
+            delete(LibraryAsset).where(
+                (LibraryAsset.filename.like("%.wav")) | 
+                (LibraryAsset.duration_seconds <= 3.1)
+            )
+        )
+        await session.commit()
+
+        for category, title, filename, is_active, version in defaults:
+            file_path = lib_dir / filename
+            if not file_path.exists():
+                continue
+            try:
+                meta = validate_audio_file(str(file_path))
+                dur = meta.get("duration_seconds", 60.0)
+                fmt = meta.get("format", "mp3")
+                size = meta.get("file_size_bytes", file_path.stat().st_size)
+            except Exception:
+                dur, fmt, size = 60.0, "mp3", file_path.stat().st_size
+
+            res_ex = await session.execute(
+                select(LibraryAsset).where(LibraryAsset.filename == filename)
+            )
+            existing = res_ex.scalar_one_or_none()
+            if existing:
+                existing.title = title
+                existing.storage_path = str(file_path)
+                existing.duration_seconds = dur
+                existing.is_active = is_active
+                existing.version = version
+            else:
+                asset = LibraryAsset(
+                    category=category,
+                    title=title,
+                    filename=filename,
+                    storage_path=str(file_path),
+                    duration_seconds=dur,
+                    format=fmt,
+                    file_size_bytes=size,
+                    is_active=is_active,
+                    version=version,
+                    uploaded_by="8449563084"
+                )
+                session.add(asset)
+        await session.commit()
