@@ -86,23 +86,25 @@ async def handle_start(message: types.Message):
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[[btn]])
 
-    admin_badge = "👑 *Administrator*" if is_admin else "👤 *Foydalanuvchi*"
+    import html
+    safe_name = html.escape(first_name)
+    admin_badge = "👑 <b>Administrator</b>" if is_admin else "👤 <b>Foydalanuvchi</b>"
 
     welcome_text = (
-        f"👋 Assalomu alaykum, *{first_name}*!\n\n"
-        f"🎉 *Vivern MC* ovoz studiyasiga xush kelibsiz!\n"
+        f"👋 Assalomu alaykum, <b>{safe_name}</b>!\n\n"
+        f"🎉 <b>Vivern MC</b> ovoz studiyasiga xush kelibsiz!\n"
         f"Bu yerda siz tug'ilgan kun suhbatlari yozuvini professional ovoz va musiqa bilan "
         f"avtomatlashtirilgan tarzda tayyorlashingiz mumkin.\n\n"
         f"📌 Sizning maqomingiz: {admin_badge}\n"
-        f"🆔 Telegram ID: `{user_id}`\n\n"
+        f"🆔 Telegram ID: <code>{user_id}</code>\n\n"
     )
 
     if is_https:
         welcome_text += "Buyurtma berish uchun quyidagi tugmani bosing:"
     else:
-        welcome_text += f"🌐 Mini App-ni ochish uchun brauzeringizda ushbu havolaga kiring:\n`{settings.SERVER_PUBLIC_URL}`"
+        welcome_text += f"🌐 Mini App-ni ochish uchun brauzeringizda ushbu havolaga kiring:\n<code>{settings.SERVER_PUBLIC_URL}</code>"
 
-    await message.answer(welcome_text, parse_mode="Markdown", reply_markup=kb)
+    await message.answer(welcome_text, parse_mode="HTML", reply_markup=kb)
 
 @dp.message(Command("admin"))
 async def handle_admin(message: types.Message):
@@ -122,16 +124,16 @@ async def handle_admin(message: types.Message):
         kb = InlineKeyboardMarkup(inline_keyboard=[[admin_btn]])
 
     admin_text = (
-        "👑 *Vivern MC Administrator Paneli*\n\n"
+        "👑 <b>Vivern MC Administrator Paneli</b>\n\n"
         "Siz musiqa kutubxonasini boshqarishingiz, buyurtmalarni kuzatishingiz "
         "va audio parametrlarni sozlashingiz mumkin.\n\n"
     )
     if not is_https:
-        admin_text += f"⚙️ Admin panel havolasi:\n`{admin_url}`"
+        admin_text += f"⚙️ Admin panel havolasi:\n<code>{admin_url}</code>"
 
     await message.answer(
         admin_text,
-        parse_mode="Markdown",
+        parse_mode="HTML",
         reply_markup=kb
     )
 

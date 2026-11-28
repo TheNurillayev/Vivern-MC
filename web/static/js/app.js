@@ -1401,7 +1401,7 @@
           btnEl.innerHTML = origHtml;
           btnEl.disabled = false;
         }
-      }, 5000);
+      }, 4000);
     }
     const cleanTitle = (orderTitle && orderTitle.trim())
       ? orderTitle.trim().replace(/[^\w\s-]/g, '').replace(/[-\s]+/g, '_')
@@ -1410,25 +1410,17 @@
     const dlUrl = `/api/orders/${orderId}/download`;
     const fullUrl = new URL(dlUrl, window.location.origin).href;
 
-    // 1. Try Telegram native downloadFile (Bot API 8.0+)
-    if (window.Telegram?.WebApp?.downloadFile) {
+    // Telegram Mini App: openLink directly triggers phone browser native file download
+    if (window.Telegram?.WebApp?.openLink) {
       try {
-        window.Telegram.WebApp.downloadFile({
-          url: fullUrl,
-          file_name: fileName
-        }, function (accepted) {
-          if (btnEl) {
-            btnEl.innerHTML = origHtml;
-            btnEl.disabled = false;
-          }
-        });
+        window.Telegram.WebApp.openLink(fullUrl);
         return;
       } catch (e) {
-        console.warn("Telegram downloadFile fallback", e);
+        console.warn("Telegram openLink fallback:", e);
       }
     }
 
-    // 2. Direct Blob Fetch & Download for mobile WebView & browsers
+    // Direct Blob Fetch & Download for standard desktop / mobile browsers
     try {
       const res = await fetch(fullUrl);
       if (!res.ok) throw new Error("Faylni yuklab bo'lmadi");
@@ -1445,12 +1437,7 @@
         if (a.parentNode) a.parentNode.removeChild(a);
       }, 1500);
     } catch (err) {
-      // 3. Fallback: open link externally
-      if (window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(fullUrl);
-      } else {
-        window.open(fullUrl, "_blank");
-      }
+      window.location.href = fullUrl;
     } finally {
       if (btnEl) {
         btnEl.innerHTML = origHtml;
@@ -1469,7 +1456,7 @@
           btnEl.innerHTML = origHtml;
           btnEl.disabled = false;
         }
-      }, 5000);
+      }, 4000);
     }
     const cleanTitle = (orderTitle && orderTitle.trim())
       ? orderTitle.trim().replace(/[^\w\s-]/g, '').replace(/[-\s]+/g, '_')
@@ -1478,25 +1465,17 @@
     const dlUrl = `/api/orders/${orderId}/download-video`;
     const fullUrl = new URL(dlUrl, window.location.origin).href;
 
-    // 1. Try Telegram native downloadFile (Bot API 8.0+)
-    if (window.Telegram?.WebApp?.downloadFile) {
+    // Telegram Mini App: openLink directly triggers phone browser native video download
+    if (window.Telegram?.WebApp?.openLink) {
       try {
-        window.Telegram.WebApp.downloadFile({
-          url: fullUrl,
-          file_name: fileName
-        }, function (accepted) {
-          if (btnEl) {
-            btnEl.innerHTML = origHtml;
-            btnEl.disabled = false;
-          }
-        });
+        window.Telegram.WebApp.openLink(fullUrl);
         return;
       } catch (e) {
-        console.warn("Telegram downloadFile fallback", e);
+        console.warn("Telegram openLink fallback:", e);
       }
     }
 
-    // 2. Direct Blob Fetch & Download for mobile WebView & browsers
+    // Direct Blob Fetch & Download for standard desktop / mobile browsers
     try {
       const res = await fetch(fullUrl);
       if (!res.ok) throw new Error("Videoni yuklab bo'lmadi");
@@ -1514,11 +1493,7 @@
       }, 2000);
     } catch (e) {
       console.warn("Direct blob video download fallback", e);
-      if (window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(fullUrl);
-      } else {
-        window.open(fullUrl, "_blank");
-      }
+      window.location.href = fullUrl;
     } finally {
       if (btnEl) {
         btnEl.innerHTML = origHtml;
@@ -1660,13 +1635,7 @@
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">${dateStr}</div>
               </div>
-              ${o.status === "completed" ? `
-                <button type="button" class="btn-order-pencil" onclick="toggleOrderActionButtons('${o.id}')" title="Amallar (Yuklab olish / O'chirish)">
-                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                  </svg>
-                </button>
-              ` : statusBadge}
+              ${statusBadge}
             </div>
             <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px; width: 100%; overflow: hidden;">
               <div class="order-text-row">
@@ -1679,9 +1648,9 @@
             ${o.status === "completed" ? `
               <div style="margin-top: 10px;">
                 ${o.is_video_mode ? `
-                  <div style="margin-bottom: 8px; text-align: center;">
-                    <div style="position: relative; max-width: 200px; margin: 0 auto; border-radius: 10px; overflow: hidden; background: #000; box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
-                      <video id="video-player-${o.id}" playsinline preload="metadata" controls style="width: 100%; max-height: 160px; object-fit: contain; display: block;">
+                  <div style="margin-bottom: 10px; text-align: center;">
+                    <div style="position: relative; max-width: 125px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #000; border: 1.5px solid rgba(236, 72, 153, 0.45); box-shadow: 0 4px 14px rgba(0,0,0,0.45);">
+                      <video id="video-player-${o.id}" playsinline preload="metadata" controls style="width: 100%; max-height: 130px; object-fit: contain; display: block;">
                         <source src="/api/orders/${o.id}/download-video" type="video/mp4">
                         Brauzeringiz videoni qo'llab-quvvatlamaydi.
                       </video>
@@ -1689,24 +1658,24 @@
                   </div>
                 ` : ''}
                 <audio controls src="${dlUrl}" style="width:100%; height:36px;"></audio>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                  <span style="font-size: 0.75rem; color: var(--accent-emerald);">
-                    ✓ Telegram botingizga ham yuborildi
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 0.75rem; color: ${o.delivered_to_telegram ? 'var(--accent-emerald)' : 'var(--accent-gold)'};">
+                    ${o.delivered_to_telegram ? '✓ Telegram botingizga ham yuborildi' : (o.is_video_mode ? '📲 Mini App orqali videoni yuklab oling' : '✓ Tayyorlandi')}
                   </span>
                   <span class="badge-tag" style="background:var(--accent-emerald); font-size:0.75rem; font-weight:600; padding:2px 8px; border-radius:8px;">
                     ✓ Tayyor
                   </span>
                 </div>
-                <div id="order-actions-${o.id}" class="order-action-buttons-row" style="display: none; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; flex-wrap: wrap;">
+                <div id="order-actions-${o.id}" class="order-action-buttons-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; flex-wrap: wrap;">
                   ${o.is_video_mode ? `
-                    <button type="button" onclick="downloadOrderVideo('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn btn-secondary" style="flex: 1; min-width: 120px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.4); color: #f472b6; cursor: pointer; text-align: center;">
+                    <button type="button" onclick="downloadOrderVideo('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn" style="flex: 1.2; min-width: 125px; padding: 9px 12px; font-size: 0.82rem; font-weight: 700; border-radius: 10px; background: linear-gradient(135deg, #ec4899, #be185d); border: none; color: #fff; cursor: pointer; text-align: center; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.35);">
                       🎬 Video Yuklash
                     </button>
                   ` : ''}
-                  <button type="button" onclick="downloadOrderAudio('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn btn-secondary" style="flex: 1; min-width: 110px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; cursor: pointer; text-align: center;">
+                  <button type="button" onclick="downloadOrderAudio('${o.id}', this, '${escapeHtml(o.audio_title || '')}')" class="btn" style="flex: 1; min-width: 105px; padding: 9px 10px; font-size: 0.82rem; font-weight: 600; border-radius: 10px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); color: #93c5fd; cursor: pointer; text-align: center;">
                     ⬇️ MP3 Yuklash
                   </button>
-                  <button type="button" onclick="promptDeleteOrder('${o.id}')" class="btn btn-secondary" style="flex: 1; min-width: 80px; padding: 8px 10px; font-size: 0.8rem; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; cursor: pointer; text-align: center;">
+                  <button type="button" onclick="promptDeleteOrder('${o.id}')" class="btn" style="flex: 0.5; min-width: 60px; padding: 9px 8px; font-size: 0.82rem; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; cursor: pointer; text-align: center;">
                     🗑️ O'chirish
                   </button>
                 </div>
